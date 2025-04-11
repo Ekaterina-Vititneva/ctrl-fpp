@@ -1,0 +1,27 @@
+# Environments
+.venv
+**/venv/
+
+# === Global ===
+.DS_Store
+.env
+*.log
+*.sqlite3
+__pycache__/
+*.py[cod]
+*.pkl
+
+# === Python / FastAPI backend ===
+backend/.mypy_cache/
+backend/.pytest_cache/
+backend/.idea/
+backend/data/docs/
+backend/vectorstore/
+
+# === Node / React frontend ===
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env
+frontend/.DS_Store
+frontend/.eslintcache
