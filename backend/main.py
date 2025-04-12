@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import shutil
@@ -105,3 +105,22 @@ async def ask_docs_local(req: AskRequest, request: Request):
         print("⚠️ Error in /askLocal:")
         traceback.print_exc()  # full trace to terminal
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/reset", status_code=status.HTTP_204_NO_CONTENT)
+def reset_vectorstore():
+    """
+    Clears all stored vectors and deletes saved FAISS index files.
+    """
+    import shutil
+    import os
+
+    # Adjust this path if your FAISS index lives elsewhere
+    vectorstore_dir = os.path.join("backend", "vectorstore")
+    
+    if os.path.exists(vectorstore_dir):
+        shutil.rmtree(vectorstore_dir)
+        os.makedirs(vectorstore_dir, exist_ok=True)
+
+    # Optional: also clear in-memory vectorstore
+    vectorstore.reset()  # <-- if your vectorstore object supports it
+    return

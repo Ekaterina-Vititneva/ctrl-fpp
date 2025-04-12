@@ -1,11 +1,14 @@
 import faiss
+from langchain_community.vectorstores import FAISS
 import os
 import pickle
 from typing import List, Dict
+from embedding_model import get_embedding
 
-# Store the FAISS index and the associated metadata in vectorstore/
-INDEX_PATH = "vectorstore/index.faiss"
-DOCSTORE_PATH = "vectorstore/docstore.pkl"
+# Storing the FAISS index and the associated metadata in vectorstore/
+VECTORSTORE_DIR = "vectorstore"
+INDEX_PATH = os.path.join(VECTORSTORE_DIR, "index.faiss")
+DOCSTORE_PATH = os.path.join(VECTORSTORE_DIR, "docstore.pkl")
 
 class VectorStore:
     def __init__(self, embedding_dim: int = 384):
@@ -53,6 +56,8 @@ class VectorStore:
         """
         Save FAISS index plus chunk metadata (docstore) to disk.
         """
+        os.makedirs(VECTORSTORE_DIR, exist_ok=True)
+
         # Save index
         faiss.write_index(self.index, INDEX_PATH)
 
@@ -76,6 +81,22 @@ class VectorStore:
                 self.doc_chunks = data["doc_chunks"]
                 self.ids = data["ids"]
 
+    def reset(self):
+        """
+        Delete all saved data and reinitialize empty in-memory state.
+        """
+        import shutil
+
+        # Delete files and directory
+        if os.path.exists(VECTORSTORE_DIR):
+            shutil.rmtree(VECTORSTORE_DIR)
+
+        os.makedirs(VECTORSTORE_DIR, exist_ok=True)
+
+        # Reset in-memory structures
+        self.index = faiss.IndexFlatL2(self.embedding_dim)
+        self.doc_chunks = []
+        self.ids = []
 
 # Initialize a global instance so we can reuse across endpoints
 vectorstore = VectorStore()

@@ -1,6 +1,7 @@
 import AskBox from './components/AskBox'
 import FileUploader from './components/FileUploader'
 import QuestionBox from './components/QuestionBox'
+import ResetButton from './components/ResetButton'
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
       <hr />
       <QuestionBox />
       <AskBox />
+      <ResetButton />
     </div>
   )
 }
