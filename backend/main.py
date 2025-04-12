@@ -1,8 +1,12 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import shutil
 from pydantic import BaseModel
+from typing import List
+from llm_loader import get_local_llm
+from langchain.chains import RetrievalQA
+import traceback
 
 from parser import parse_pdf, chunk_text
 from embedding_model import get_embedding
@@ -66,3 +70,38 @@ async def query_docs(req: QueryRequest):
     q_embedding = get_embedding([req.question])[0]
     results = vectorstore.search(q_embedding, top_k=3)
     return {"question": req.question, "results": results}
+
+class AskRequest(BaseModel):
+    question: str
+
+@app.post("/askLocal")
+async def ask_docs_local(req: AskRequest, request: Request):
+    try:
+        llm = get_local_llm()
+
+        # Vector search
+        q_embedding = get_embedding([req.question])[0]
+        results = vectorstore.search(q_embedding, top_k=3)
+        context = "\n\n".join([r["chunk"] for r in results])
+
+        prompt = f"""
+        You are a helpful assistant. Use the context to answer the question.
+        Context:
+        {context}
+
+        Question: {req.question}
+        Answer:
+        """
+
+        answer = llm.invoke(prompt)
+
+        return {
+            "question": req.question,
+            "answer": answer,
+            "sources": results
+        }
+
+    except Exception as e:
+        print("⚠️ Error in /askLocal:")
+        traceback.print_exc()  # full trace to terminal
+        raise HTTPException(status_code=500, detail=str(e))

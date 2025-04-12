@@ -1,3 +1,4 @@
+import AskBox from './components/AskBox'
 import FileUploader from './components/FileUploader'
 import QuestionBox from './components/QuestionBox'
 
@@ -8,6 +9,7 @@ function App() {
       <FileUploader />
       <hr />
       <QuestionBox />
+      <AskBox />
     </div>
   )
 }
