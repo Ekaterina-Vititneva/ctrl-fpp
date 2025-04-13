@@ -18,17 +18,19 @@ class VectorStore:
         """
         self.embedding_dim = embedding_dim
         self.index = faiss.IndexFlatL2(self.embedding_dim)
-        self.doc_chunks = []  # Stores dicts: {"text": chunk, "source": filename}
+        self.doc_chunks = []  # Stores dicts: {"text": chunk, "source": filename, "page": page_num}
         self.ids = []
 
-    def add_embeddings(self, embeddings: List[List[float]], chunks: List[str], filenames: List[str]):
+    def add_embeddings(
+        self,
+        embeddings: List[List[float]],
+        chunk_dicts: List[Dict],  # each with {"page": int, "chunk": str}
+        filename: str
+    ):
         """
-        Add new embeddings to the FAISS index, and store chunk text and source filename.
-
-        Args:
-            embeddings: List of embedding vectors.
-            chunks: List of chunk texts.
-            filenames: List of filenames matching each chunk (same length as chunks).
+        Instead of separate 'chunks' and 'filenames' arrays,
+        we pass chunk_dicts that contain page and chunk data,
+        plus a single filename for them all.
         """
         import numpy as np
         vecs = np.array(embeddings).astype('float32')
@@ -37,17 +39,21 @@ class VectorStore:
 
         self.index.add(vecs)
 
-        for i, (chunk, fname) in zip(ids_range, zip(chunks, filenames)):
+        for i, (chunk_obj) in zip(ids_range, chunk_dicts):
+            page_num = chunk_obj["page"]
+            text = chunk_obj["chunk"]
             self.ids.append(i)
             self.doc_chunks.append({
-                "text": chunk,
-                "source": fname
+                "text": text,
+                "source": filename,
+                "page": page_num
             })
+
 
     def search(self, query_embedding: List[float], top_k: int = 3) -> List[Dict]:
         """
         Search the index using the given query embedding, return top_k results.
-        Each result includes the chunk text, source filename, and similarity distance.
+        Each result includes the chunk text, source filename, page number, and similarity distance.
         """
         import numpy as np
         q = np.array([query_embedding]).astype('float32')
@@ -59,8 +65,10 @@ class VectorStore:
             results.append({
                 "chunk": chunk_obj["text"],
                 "source": chunk_obj["source"],
+                "page": chunk_obj["page"],
                 "distance": float(dist)
-            })
+                })
+
         return results
 
     def save(self):

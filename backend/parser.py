@@ -1,36 +1,42 @@
 import fitz  # PyMuPDF
-import re
-from typing import List
+from typing import List, Dict
 
-def parse_pdf(pdf_path: str) -> str:
+def parse_pdf_pages(pdf_path: str) -> List[Dict]:
     """
-    Reads the PDF from pdf_path and returns the entire text as a single string.
+    Reads the PDF from pdf_path and returns a list of dicts,
+    where each dict is: {"page": page_num, "text": page_text}.
     """
     doc = fitz.open(pdf_path)
-    full_text = []
-    for page in doc:
-        text = page.get_text("text")
-        full_text.append(text)
-    doc.close()
-    return "\n".join(full_text)
+    parsed_pages = []
 
-def chunk_text(
-    text: str,
-    chunk_size: int = 500,
-    overlap: int = 50
-) -> List[str]:
+    for page_num, page in enumerate(doc, start=1):
+        text = page.get_text("text")
+        # Store both text and page number
+        parsed_pages.append({"page": page_num, "text": text})
+
+    doc.close()
+    return parsed_pages
+
+def chunk_pdf_pages(parsed_pages: List[Dict], chunk_size=300, overlap=50) -> List[Dict]:
     """
-    Splits the text into overlapping chunks of size `chunk_size`.
-    Overlap ensures some context continuity between chunks.
+    For each page dict, chunk the text, preserving page info.
+    Returns a list of dicts: {"page": int, "chunk": str}
     """
-    words = text.split()
-    chunks = []
-    start = 0
-    while start < len(words):
-        end = start + chunk_size
-        chunk = words[start:end]
-        # Rejoin into a string
-        chunk_str = " ".join(chunk)
-        chunks.append(chunk_str)
-        start += chunk_size - overlap
-    return chunks
+    chunks_output = []
+
+    for page_dict in parsed_pages:
+        page_num = page_dict["page"]
+        text = page_dict["text"]
+        # Split into words
+        words = text.split()
+        start = 0
+
+        while start < len(words):
+            end = start + chunk_size
+            chunk_words = words[start:end]
+            chunk_str = " ".join(chunk_words)
+            chunks_output.append({"page": page_num, "chunk": chunk_str})
+            # Move start forward
+            start += chunk_size - overlap
+
+    return chunks_output

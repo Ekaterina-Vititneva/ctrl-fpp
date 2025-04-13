@@ -82,6 +82,7 @@ const AskBox = () => {
                   chunk={src.chunk}
                   source={src.source}
                   distance={src.distance}
+                  page={src.page}
                 />
               ))}
             </Stack>

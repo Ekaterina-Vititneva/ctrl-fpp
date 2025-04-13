@@ -1,5 +1,5 @@
 from sentence_transformers import SentenceTransformer
-from typing import List
+from typing import List, Dict
 import torch
 
 # Load local embedding model
@@ -16,3 +16,20 @@ def get_embedding(texts: List[str]) -> List[List[float]]:
         embeddings = embedding_model.encode(texts, show_progress_bar=False)
     # Convert NumPy arrays to Python lists
     return [emb.tolist() for emb in embeddings]
+
+def get_embedding_with_metadata(chunks: List[Dict]) -> (List[List[float]], List[str], List[str], List[int]):
+    """
+    Returns embeddings and extracted metadata from text chunks.
+
+    Each chunk in chunks must be a dict with keys: 'text', 'source', 'page'
+    Returns a tuple of:
+    - embeddings: list of vectors
+    - texts: list of chunk strings
+    - sources: list of filenames
+    - pages: list of page numbers
+    """
+    texts = [c["text"] for c in chunks]
+    sources = [c["source"] for c in chunks]
+    pages = [c["page"] for c in chunks]
+    embeddings = get_embedding(texts)
+    return embeddings, texts, sources, pages

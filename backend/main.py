@@ -5,11 +5,11 @@ import shutil
 from pydantic import BaseModel
 from typing import List
 from llm_loader import get_llm
-from langchain.chains import RetrievalQA
 import traceback
 from dotenv import load_dotenv
 
-from parser import parse_pdf, chunk_text
+# Import your new page-based parser and chunker
+from parser import parse_pdf_pages, chunk_pdf_pages
 from embedding_model import get_embedding
 from rag import vectorstore
 
@@ -37,7 +37,7 @@ def read_root():
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    """Uploads a PDF, parses & chunks it, embeds it, and adds to FAISS."""
+    """Uploads a PDF, parses & chunks it by page, embeds it, and adds to FAISS with page info."""
     filename = file.filename
     file_path = os.path.join(UPLOAD_DIR, filename)
 
@@ -48,44 +48,61 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    # 2. Parse PDF
+    # 2. Parse & chunk the PDF into (page, chunk) dicts
     try:
-        pdf_text = parse_pdf(file_path)
-        # 3. Chunk
-        chunks = chunk_text(pdf_text, chunk_size=300, overlap=50)
-        # 4. Embed
-        embeddings = get_embedding(chunks)
-        # 5. Add to vectorstore
-        filenames = [filename] * len(chunks)
-        vectorstore.add_embeddings(embeddings, chunks, filenames)
-        # 6. Save index
+        # parse each page individually
+        parsed_pages = parse_pdf_pages(file_path)
+        # chunk them
+        chunked_pages = chunk_pdf_pages(parsed_pages, chunk_size=300, overlap=50)
+
+        # 3. Prepare embeddings
+        # We only need the 'chunk' text for embedding
+        chunk_texts = [cp["chunk"] for cp in chunked_pages]
+        embeddings = get_embedding(chunk_texts)
+
+        # 4. Add to vectorstore
+        # Our rag.py expects:
+        #    add_embeddings(embeddings: List[List[float]], chunk_dicts: List[Dict], filename: str)
+        # so we can store {"text", "source", "page"} in doc_chunks.
+        vectorstore.add_embeddings(embeddings, chunked_pages, filename)
+
+        # 5. Save index
         vectorstore.save()
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error parsing or embedding PDF: {str(e)}")
 
     return {"filename": filename, "message": "Upload + embedding successful!"}
 
+
 @app.post("/query")
 async def query_docs(req: QueryRequest):
     """
     Takes a user question, gets an embedding, searches FAISS,
-    and returns the top matching chunks.
+    and returns the top matching chunks (with page numbers).
     """
     q_embedding = get_embedding([req.question])[0]
     results = vectorstore.search(q_embedding, top_k=3)
     return {"question": req.question, "results": results}
+
 
 class AskRequest(BaseModel):
     question: str
 
 @app.post("/ask")
 async def ask_docs(req: AskRequest, request: Request):
+    """
+    Takes a user question, retrieves top chunks (with page numbers),
+    builds a prompt, calls LLM to form an answer, returns the final answer + sources.
+    """
     try:
         llm = get_llm()
 
-        # Vector search
+        # 1) Vector search
         q_embedding = get_embedding([req.question])[0]
         results = vectorstore.search(q_embedding, top_k=3)
+
+        # 2) Build context
         context = "\n\n".join([r["chunk"] for r in results])
 
         prompt = f"""
@@ -97,16 +114,16 @@ async def ask_docs(req: AskRequest, request: Request):
         Answer:
         """
 
+        # 3) Get LLM answer
         answer_raw = llm.invoke(prompt)
         answer_text = answer_raw.content if hasattr(answer_raw, "content") else str(answer_raw)
 
-        print("🔍 Query embedding:", q_embedding[:5], "...")  # first few values
+        print("🔍 Query embedding:", q_embedding[:5], "...")
         print("📄 Vectorstore has", len(vectorstore.doc_chunks), "chunks")
 
         for i, r in enumerate(results):
             print(f"🔗 {i+1}. {r['source']} (score: {r['distance']:.4f})")
-            print("   ", r["chunk"][:80], "...")  # first 80 chars
-
+            print("   ", r["chunk"][:80], "...")
 
         return {
             "question": req.question,
@@ -116,8 +133,9 @@ async def ask_docs(req: AskRequest, request: Request):
 
     except Exception as e:
         print("⚠️ Error in /askLocal:")
-        traceback.print_exc()  # full trace to terminal
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/reset", status_code=status.HTTP_204_NO_CONTENT)
 def reset_vectorstore():
@@ -125,19 +143,19 @@ def reset_vectorstore():
     Clears all stored vectors and deletes saved FAISS index files.
     """
     import shutil
-    import os
-
-    # Adjust this path if your FAISS index lives elsewhere
     vectorstore_dir = os.path.join("backend", "vectorstore")
-    
+
     if os.path.exists(vectorstore_dir):
         shutil.rmtree(vectorstore_dir)
         os.makedirs(vectorstore_dir, exist_ok=True)
 
-    # Optional: also clear in-memory vectorstore
-    vectorstore.reset()  # <-- if your vectorstore object supports it
+    vectorstore.reset()
     return
+
 
 @app.get("/status")
 def status():
-    return {"llm": os.getenv("LLM_PROVIDER", "openai"), "docs_loaded": len(vectorstore.doc_chunks)}
+    return {
+        "llm": os.getenv("LLM_PROVIDER", "openai"),
+        "docs_loaded": len(vectorstore.doc_chunks)
+    }
