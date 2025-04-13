@@ -56,7 +56,8 @@ async def upload_file(file: UploadFile = File(...)):
         # 4. Embed
         embeddings = get_embedding(chunks)
         # 5. Add to vectorstore
-        vectorstore.add_embeddings(embeddings, chunks)
+        filenames = [filename] * len(chunks)
+        vectorstore.add_embeddings(embeddings, chunks, filenames)
         # 6. Save index
         vectorstore.save()
     except Exception as e:
@@ -98,6 +99,13 @@ async def ask_docs(req: AskRequest, request: Request):
 
         answer_raw = llm.invoke(prompt)
         answer_text = answer_raw.content if hasattr(answer_raw, "content") else str(answer_raw)
+
+        print("🔍 Query embedding:", q_embedding[:5], "...")  # first few values
+        print("📄 Vectorstore has", len(vectorstore.doc_chunks), "chunks")
+
+        for i, r in enumerate(results):
+            print(f"🔗 {i+1}. {r['source']} (score: {r['distance']:.4f})")
+            print("   ", r["chunk"][:80], "...")  # first 80 chars
 
 
         return {

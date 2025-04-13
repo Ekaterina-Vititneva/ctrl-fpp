@@ -18,29 +18,36 @@ class VectorStore:
         """
         self.embedding_dim = embedding_dim
         self.index = faiss.IndexFlatL2(self.embedding_dim)
-        self.doc_chunks = []  # In-memory store for chunk text
-        self.ids = []         # IDs for each chunk
+        self.doc_chunks = []  # Stores dicts: {"text": chunk, "source": filename}
+        self.ids = []
 
-    def add_embeddings(self, embeddings: List[List[float]], chunks: List[str]):
+    def add_embeddings(self, embeddings: List[List[float]], chunks: List[str], filenames: List[str]):
         """
-        Add new embeddings to the FAISS index, keep track of chunk text in memory.
+        Add new embeddings to the FAISS index, and store chunk text and source filename.
+
+        Args:
+            embeddings: List of embedding vectors.
+            chunks: List of chunk texts.
+            filenames: List of filenames matching each chunk (same length as chunks).
         """
         import numpy as np
         vecs = np.array(embeddings).astype('float32')
         start_id = len(self.ids)
         ids_range = range(start_id, start_id + len(vecs))
 
-        # Add to FAISS
         self.index.add(vecs)
 
-        # Save metadata in memory
-        for i, c in zip(ids_range, chunks):
+        for i, (chunk, fname) in zip(ids_range, zip(chunks, filenames)):
             self.ids.append(i)
-            self.doc_chunks.append(c)
+            self.doc_chunks.append({
+                "text": chunk,
+                "source": fname
+            })
 
     def search(self, query_embedding: List[float], top_k: int = 3) -> List[Dict]:
         """
         Search the index using the given query embedding, return top_k results.
+        Each result includes the chunk text, source filename, and similarity distance.
         """
         import numpy as np
         q = np.array([query_embedding]).astype('float32')
@@ -48,8 +55,12 @@ class VectorStore:
 
         results = []
         for dist, idx in zip(distances[0], indices[0]):
-            chunk_text = self.doc_chunks[idx]
-            results.append({"chunk": chunk_text, "distance": float(dist)})
+            chunk_obj = self.doc_chunks[idx]
+            results.append({
+                "chunk": chunk_obj["text"],
+                "source": chunk_obj["source"],
+                "distance": float(dist)
+            })
         return results
 
     def save(self):
@@ -57,11 +68,8 @@ class VectorStore:
         Save FAISS index plus chunk metadata (docstore) to disk.
         """
         os.makedirs(VECTORSTORE_DIR, exist_ok=True)
-
-        # Save index
         faiss.write_index(self.index, INDEX_PATH)
 
-        # Save chunk data (docstore)
         with open(DOCSTORE_PATH, "wb") as f:
             pickle.dump({
                 "doc_chunks": self.doc_chunks,
@@ -87,13 +95,11 @@ class VectorStore:
         """
         import shutil
 
-        # Delete files and directory
         if os.path.exists(VECTORSTORE_DIR):
             shutil.rmtree(VECTORSTORE_DIR)
 
         os.makedirs(VECTORSTORE_DIR, exist_ok=True)
 
-        # Reset in-memory structures
         self.index = faiss.IndexFlatL2(self.embedding_dim)
         self.doc_chunks = []
         self.ids = []
