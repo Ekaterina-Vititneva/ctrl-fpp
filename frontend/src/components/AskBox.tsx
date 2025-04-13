@@ -12,7 +12,8 @@ import {
   Paper,
   Stack,
 } from '@mui/material'
-import SourceQuoteItem from './SourceQuoteItem' // <-- import the new child
+import ReactMarkdown from 'react-markdown'
+import SourceQuoteItem from './SourceQuoteItem'
 
 const AskBox = () => {
   const [question, setQuestion] = useState('')
@@ -48,8 +49,9 @@ const AskBox = () => {
             value={question}
             onChange={e => setQuestion(e.target.value)}
             variant="outlined"
+            size="small"
           />
-          <Button variant="contained" onClick={handleAsk} disabled={loading}>
+          <Button variant="contained" size="small" onClick={handleAsk} disabled={loading}>
             {loading ? <CircularProgress size={24} /> : 'Absenden'}
           </Button>
         </Box>
@@ -60,7 +62,9 @@ const AskBox = () => {
               <strong>Antwort:</strong>
             </Typography>
             <Paper elevation={1} sx={{ p: 2 }}>
-              <Typography variant="body1">{response.answer}</Typography>
+              <Paper elevation={1} sx={{ p: 2 }}>
+                <ReactMarkdown>{response.answer}</ReactMarkdown>
+              </Paper>
             </Paper>
           </>
         )}

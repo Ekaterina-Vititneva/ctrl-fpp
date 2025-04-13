@@ -24,7 +24,7 @@ function App() {
       <CssBaseline />
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Typography variant="h3" gutterBottom>
-          Ctrl+F++
+          Ctrl+F ++
         </Typography>
 
         <Box my={3}>
