@@ -4,13 +4,16 @@ import os
 import shutil
 from pydantic import BaseModel
 from typing import List
-from llm_loader import get_local_llm
+from llm_loader import get_llm
 from langchain.chains import RetrievalQA
 import traceback
+from dotenv import load_dotenv
 
 from parser import parse_pdf, chunk_text
 from embedding_model import get_embedding
 from rag import vectorstore
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -74,10 +77,10 @@ async def query_docs(req: QueryRequest):
 class AskRequest(BaseModel):
     question: str
 
-@app.post("/askLocal")
-async def ask_docs_local(req: AskRequest, request: Request):
+@app.post("/ask")
+async def ask_docs(req: AskRequest, request: Request):
     try:
-        llm = get_local_llm()
+        llm = get_llm()
 
         # Vector search
         q_embedding = get_embedding([req.question])[0]
@@ -93,11 +96,13 @@ async def ask_docs_local(req: AskRequest, request: Request):
         Answer:
         """
 
-        answer = llm.invoke(prompt)
+        answer_raw = llm.invoke(prompt)
+        answer_text = answer_raw.content if hasattr(answer_raw, "content") else str(answer_raw)
+
 
         return {
             "question": req.question,
-            "answer": answer,
+            "answer": answer_text,
             "sources": results
         }
 
@@ -124,3 +129,7 @@ def reset_vectorstore():
     # Optional: also clear in-memory vectorstore
     vectorstore.reset()  # <-- if your vectorstore object supports it
     return
+
+@app.get("/status")
+def status():
+    return {"llm": os.getenv("LLM_PROVIDER", "openai"), "docs_loaded": len(vectorstore.doc_chunks)}
