@@ -1,4 +1,3 @@
-// AskBox.tsx
 import { useState } from 'react'
 import axios from 'axios'
 import {
@@ -20,6 +19,15 @@ const AskBox = () => {
   const [response, setResponse] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
+  // This helper splits the question into an array of words, removing punctuation and short words
+  const getQuestionWords = (q: string) => {
+    return q
+      .split(/\s+/)
+      .map(word => word.replace(/[^\p{L}\p{N}]+/gu, ''))
+      .filter(Boolean)
+      .filter(word => word.length >= 4)
+  }
+
   const handleAsk = async () => {
     if (!question.trim()) return
     setLoading(true)
@@ -34,6 +42,9 @@ const AskBox = () => {
       setLoading(false)
     }
   }
+
+  // We'll compute the array of words to highlight
+  const questionWords = getQuestionWords(question)
 
   return (
     <Card variant="outlined" sx={{ mt: 4 }}>
@@ -62,9 +73,7 @@ const AskBox = () => {
               <strong>Antwort:</strong>
             </Typography>
             <Paper elevation={1} sx={{ p: 2 }}>
-              <Paper elevation={1} sx={{ p: 2 }}>
-                <ReactMarkdown>{response.answer}</ReactMarkdown>
-              </Paper>
+              <ReactMarkdown>{response.answer}</ReactMarkdown>
             </Paper>
           </>
         )}
@@ -83,6 +92,7 @@ const AskBox = () => {
                   source={src.source}
                   distance={src.distance}
                   page={src.page}
+                  questionWords={questionWords} // pass the array to highlight
                 />
               ))}
             </Stack>
