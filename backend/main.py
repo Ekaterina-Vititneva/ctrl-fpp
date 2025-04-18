@@ -13,7 +13,7 @@ from parser import parse_pdf_pages, chunk_pdf_pages
 from embedding_model import get_embedding
 from rag import vectorstore
 
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 app = FastAPI()
 
@@ -28,8 +28,8 @@ app.add_middleware(
 UPLOAD_DIR = "data/docs"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-class QueryRequest(BaseModel):
-    question: str
+# # class QueryRequest(BaseModel):
+#     question: str
 
 @app.get("/")
 def read_root():
@@ -64,6 +64,7 @@ async def upload_file(file: UploadFile = File(...)):
         # Our rag.py expects:
         #    add_embeddings(embeddings: List[List[float]], chunk_dicts: List[Dict], filename: str)
         # so we can store {"text", "source", "page"} in doc_chunks.
+        
         vectorstore.add_embeddings(embeddings, chunked_pages, filename)
 
         # 5. Save index
@@ -75,15 +76,15 @@ async def upload_file(file: UploadFile = File(...)):
     return {"filename": filename, "message": "Upload + embedding successful!"}
 
 
-@app.post("/query")
-async def query_docs(req: QueryRequest):
-    """
-    Takes a user question, gets an embedding, searches FAISS,
-    and returns the top matching chunks (with page numbers).
-    """
-    q_embedding = get_embedding([req.question])[0]
-    results = vectorstore.search(q_embedding, top_k=3)
-    return {"question": req.question, "results": results}
+# @app.post("/query")
+# async def query_docs(req: QueryRequest):
+#     """
+#     Takes a user question, gets an embedding, searches FAISS,
+#     and returns the top matching chunks (with page numbers).
+#     """
+#     q_embedding = get_embedding([req.question])[0]
+#     results = vectorstore.search(q_embedding, top_k=3)
+#     return {"question": req.question, "results": results}
 
 
 class AskRequest(BaseModel):
@@ -97,6 +98,7 @@ async def ask_docs(req: AskRequest, request: Request):
     """
     try:
         llm = get_llm()
+        # structured_llm = llm.with_structured_output()
 
         # 1) Vector search
         q_embedding = get_embedding([req.question])[0]

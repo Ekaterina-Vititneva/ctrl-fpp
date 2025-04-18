@@ -1,0 +1,27 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ctrl-fpp-backend
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./backend:/app
+      - ./backend/vectorstore:/app/vectorstore
+    env_file:
+      - .env
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ctrl-fpp-frontend
+    ports:
+      - "5173:80"
+    volumes:
+      - ./frontend:/app
+    env_file:
+      - .env
+    depends_on:
+      - backend
