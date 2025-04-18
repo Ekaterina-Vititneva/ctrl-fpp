@@ -33,7 +33,7 @@ const AskBox = () => {
     setLoading(true)
 
     try {
-      const res = await axios.post('http://127.0.0.1:8001/ask', { question })
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/ask`, { question })
       setResponse(res.data)
     } catch (error: any) {
       console.error('Ask failed:', error)
