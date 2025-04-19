@@ -46,15 +46,23 @@ async def upload_file(file: UploadFile = File(...)):
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        print("✅ Uploaded:", filename)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
+    
     # 2. Parse & chunk the PDF into (page, chunk) dicts
     try:
         # parse each page individually
         parsed_pages = parse_pdf_pages(file_path)
+        print("📄 Parsed", len(parsed_pages), "pages")
         # chunk them
         chunked_pages = chunk_pdf_pages(parsed_pages, chunk_size=300, overlap=50)
+        print("✂️ Chunked into", len(chunked_pages), "chunks")
+
+        if chunked_pages:
+            print("🧠 First chunk:", chunked_pages[0])
+        else:
+            print("⚠️ No chunks found!")
 
         # Add 'source' to each chunk dict
         for chunk in chunked_pages:

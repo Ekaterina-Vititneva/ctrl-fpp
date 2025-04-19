@@ -37,16 +37,29 @@ def reset():
     conn.commit()
 
 def add_embeddings(embeddings, chunk_dicts, filename):
+    print("📥 Inserting", len(embeddings), "embeddings into DB")
+
     values = []
     for emb, chunk in zip(embeddings, chunk_dicts):
-        values.append((chunk["chunk"], chunk["source"], chunk.get("page", 0), emb))
+        try:
+            values.append((chunk["chunk"], chunk["source"], chunk.get("page", 0), emb))
+        except Exception as e:
+            print("⚠️ Error in chunk dict:", chunk)
+            print("❌", str(e))
 
+    if values:
+        try:
+            execute_values(cur,
+                "INSERT INTO documents (chunk, source, page, embedding) VALUES %s",
+                values
+            )
+            conn.commit()
+            print("✅ DB insert complete")
+        except Exception as e:
+            print("❌ DB insert error:", str(e))
+    else:
+        print("⚠️ No values to insert!")
 
-    execute_values(cur,
-        "INSERT INTO documents (chunk, source, page, embedding) VALUES %s",
-        values
-    )
-    conn.commit()
 
 def search(query_embedding, top_k=3):
     cur.execute("""
