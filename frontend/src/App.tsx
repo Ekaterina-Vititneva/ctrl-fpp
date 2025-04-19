@@ -1,27 +1,11 @@
-import {
-  Container,
-  Typography,
-  Box,
-  Divider,
-  createTheme,
-  ThemeProvider,
-  CssBaseline,
-} from '@mui/material'
+import { Container, Typography, Box, Divider, ThemeProvider, CssBaseline } from '@mui/material'
 import AskBox from './components/AskBox'
 import FileUploader from './components/FileUploader'
-//import QuestionBox from './components/QuestionBox'
 import ResetButton from './components/ResetButton'
 import theme from './theme'
 
-// const darkTheme = createTheme({
-//   palette: {
-//     mode: 'dark',
-//   },
-// })
-
 function App() {
   return (
-    // <ThemeProvider theme={darkTheme}>
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Container maxWidth="md" sx={{ py: 4 }}>
