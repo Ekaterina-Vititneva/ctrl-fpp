@@ -28,6 +28,8 @@ export default function SourceQuoteItem({
   const [expanded, setExpanded] = useState(false)
   const handleToggle = () => setExpanded(!expanded)
 
+  console.log('📦 chunk:', chunk)
+
   const isTruncated = chunk.length > MAX_LENGTH
   const displayText = expanded ? chunk : truncateText(chunk, MAX_LENGTH)
 

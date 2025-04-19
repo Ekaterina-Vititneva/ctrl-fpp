@@ -10,8 +10,9 @@ from dotenv import load_dotenv
 
 # Import your new page-based parser and chunker
 from parser import parse_pdf_pages, chunk_pdf_pages
-from embedding_model import get_embedding
-from rag import vectorstore
+from embedding_model import get_embedding, get_embedding_with_metadata
+#from rag import vectorstore
+import pgvectorstore as vectorstore
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
@@ -55,20 +56,25 @@ async def upload_file(file: UploadFile = File(...)):
         # chunk them
         chunked_pages = chunk_pdf_pages(parsed_pages, chunk_size=300, overlap=50)
 
-        # 3. Prepare embeddings
-        # We only need the 'chunk' text for embedding
-        chunk_texts = [cp["chunk"] for cp in chunked_pages]
-        embeddings = get_embedding(chunk_texts)
+        # Add 'source' to each chunk dict
+        for chunk in chunked_pages:
+            chunk["source"] = filename  # needed for metadata
 
-        # 4. Add to vectorstore
-        # Our rag.py expects:
-        #    add_embeddings(embeddings: List[List[float]], chunk_dicts: List[Dict], filename: str)
-        # so we can store {"text", "source", "page"} in doc_chunks.
-        
-        vectorstore.add_embeddings(embeddings, chunked_pages, filename)
+        # Get embeddings and metadata
+        embeddings, texts, sources, pages = get_embedding_with_metadata(chunked_pages)
+
+        # Reconstruct proper chunk dicts for DB insertion
+        chunk_dicts = [
+            {"chunk": text, "source": source, "page": page}
+            for text, source, page in zip(texts, sources, pages)
+        ]
+
+
+        # Save into pgvector DB
+        vectorstore.add_embeddings(embeddings, chunk_dicts, filename)
 
         # 5. Save index
-        vectorstore.save()
+        # vectorstore.save()
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error parsing or embedding PDF: {str(e)}")
@@ -121,7 +127,12 @@ async def ask_docs(req: AskRequest, request: Request):
         answer_text = answer_raw.content if hasattr(answer_raw, "content") else str(answer_raw)
 
         print("🔍 Query embedding:", q_embedding[:5], "...")
-        print("📄 Vectorstore has", len(vectorstore.doc_chunks), "chunks")
+        #print("📄 Vectorstore has", len(vectorstore.doc_chunks), "chunks")
+        cur = vectorstore.conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM documents")
+        chunk_count = cur.fetchone()[0]
+        print("📄 Vectorstore has", chunk_count, "chunks")
+
 
         for i, r in enumerate(results):
             print(f"🔗 {i+1}. {r['source']} (score: {r['distance']:.4f})")

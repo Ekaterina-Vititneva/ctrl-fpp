@@ -11,6 +11,7 @@ import AskBox from './components/AskBox'
 import FileUploader from './components/FileUploader'
 //import QuestionBox from './components/QuestionBox'
 import ResetButton from './components/ResetButton'
+import theme from './theme'
 
 const darkTheme = createTheme({
   palette: {
@@ -20,7 +21,8 @@ const darkTheme = createTheme({
 
 function App() {
   return (
-    <ThemeProvider theme={darkTheme}>
+    // <ThemeProvider theme={darkTheme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Typography variant="h3" gutterBottom>
