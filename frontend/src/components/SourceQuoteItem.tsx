@@ -39,7 +39,7 @@ export default function SourceQuoteItem({
       sx={{
         p: 2,
         backgroundColor: 'background.default',
-        borderLeft: '4px solid #1976d2',
+        borderLeft: '4px solid #5b5ed9',
       }}
     >
       <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mb: 1 }}>

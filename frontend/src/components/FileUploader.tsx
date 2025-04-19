@@ -2,7 +2,11 @@ import { useState } from 'react'
 import axios from 'axios'
 import { Typography, Button, Box, Alert, InputLabel, Stack, CircularProgress } from '@mui/material'
 
-const FileUploader = () => {
+interface FileUploaderProps {
+  onUploadSuccess?: () => void
+}
+
+const FileUploader = ({ onUploadSuccess }: FileUploaderProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [message, setMessage] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
@@ -23,12 +27,16 @@ const FileUploader = () => {
     setMessage('')
 
     try {
-      const response = await axios.post('http://127.0.0.1:8001/upload', formData, {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       })
       setMessage(response.data.message)
+      setSelectedFile(null)
+
+      // Trigger parent refresh if provided
+      if (onUploadSuccess) onUploadSuccess()
     } catch (error: any) {
       console.error('Upload error:', error)
       if (error.response) {

@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import os
 import shutil
 from pydantic import BaseModel
@@ -180,3 +181,15 @@ def status():
         "llm": os.getenv("LLM_PROVIDER", "openai"),
         "docs_loaded": len(vectorstore.doc_chunks)
     }
+
+@app.get("/documents")
+def list_uploaded_documents():
+    try:
+        cur = vectorstore.conn.cursor()
+        cur.execute("SELECT DISTINCT source FROM documents")
+        rows = cur.fetchall()
+        documents = [row[0] for row in rows]
+        return JSONResponse(content={"documents": documents})
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+

@@ -1,20 +1,24 @@
+// theme.ts
 import { createTheme } from '@mui/material/styles'
 
 const theme = createTheme({
   palette: {
     mode: 'dark',
-    background: {
-      default: '#000000',
-      paper: '#111111',
-    },
     primary: {
-      main: '#ffffff', // white accent
+      main: '#5b5ed9',
+    },
+    secondary: {
+      main: '#787878',
+    },
+    background: {
+      default: '#1a1a1a',
+      paper: '#111111',
     },
     text: {
       primary: '#ffffff',
-      secondary: '#888888',
+      secondary: '#a1a1aa',
     },
-    divider: 'rgba(255, 255, 255, 0.08)',
+    divider: 'rgba(255,255,255,0.08)',
   },
   typography: {
     fontFamily: ['"Inter"', 'system-ui', 'sans-serif'].join(','),
@@ -34,8 +38,8 @@ const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: '#000',
-          color: '#fff',
+          backgroundColor: '#000000',
+          color: '#ffffff',
           WebkitFontSmoothing: 'antialiased',
         },
       },
@@ -43,7 +47,7 @@ const theme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          backgroundColor: '#111',
+          backgroundColor: '#111111',
           boxShadow: 'none',
         },
       },
@@ -51,15 +55,16 @@ const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          backgroundColor: '#111',
-          color: '#fff',
-          border: '1px solid rgba(255,255,255,0.1)',
+          backgroundColor: '#111111',
+          color: '#ffffff',
+          border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 6,
           padding: '8px 16px',
           fontWeight: 500,
           '&:hover': {
             backgroundColor: '#1a1a1a',
-            borderColor: 'rgba(255,255,255,0.2)',
+            borderColor: '#6366f1',
+            color: '#ffffff',
           },
         },
       },
@@ -67,37 +72,42 @@ const theme = createTheme({
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          backgroundColor: '#111',
+          backgroundColor: '#111111',
           borderRadius: 6,
+          color: '#ffffff',
           '& .MuiOutlinedInput-notchedOutline': {
             borderColor: 'rgba(255,255,255,0.1)',
           },
           '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'rgba(255,255,255,0.2)',
+            borderColor: '#6366f1',
           },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#fff',
+            borderColor: '#6366f1',
           },
         },
         input: {
-          color: '#fff',
+          color: '#ffffff',
         },
       },
     },
     MuiInputLabel: {
       styleOverrides: {
         root: {
-          color: '#888',
+          color: '#a1a1aa',
           '&.Mui-focused': {
-            color: '#fff',
+            color: '#6366f1',
           },
         },
       },
     },
     MuiSelect: {
       styleOverrides: {
+        select: {
+          backgroundColor: '#111111',
+          color: '#ffffff',
+        },
         icon: {
-          color: '#888',
+          color: '#a1a1aa',
         },
       },
     },
