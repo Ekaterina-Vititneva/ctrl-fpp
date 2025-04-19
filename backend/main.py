@@ -16,12 +16,13 @@ from embedding_model import get_embedding, get_embedding_with_metadata
 import pgvectorstore as vectorstore
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+origins = os.getenv("FRONTEND_ORIGINS", "").split(",")
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -123,7 +124,7 @@ async def ask_docs(req: AskRequest, request: Request):
         context = "\n\n".join([r["chunk"] for r in results])
 
         prompt = f"""
-        You are a helpful assistant. Use the context to answer the question.
+        You are a helpful assistant. Use the context to answer the question. Use markdown for the answer to structure it, if needed. 
         Context:
         {context}
 

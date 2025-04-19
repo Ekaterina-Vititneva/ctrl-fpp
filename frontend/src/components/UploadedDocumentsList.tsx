@@ -19,7 +19,14 @@ export default function UploadedDocumentsList({ documents }: UploadedDocumentsLi
             <ListItemIcon>
               <PictureAsPdfIcon sx={{ color: theme => theme.palette.secondary.main }} />
             </ListItemIcon>
-            <ListItemText primary={doc} />
+            <ListItemText
+              primary={doc}
+              slotProps={{
+                primary: {
+                  sx: { fontSize: '0.8rem' },
+                },
+              }}
+            />
           </ListItem>
         ))}
       </List>
