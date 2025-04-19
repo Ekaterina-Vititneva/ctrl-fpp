@@ -17,6 +17,7 @@ import pgvectorstore as vectorstore
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 origins = os.getenv("FRONTEND_ORIGINS", "").split(",")
+print("🔓 CORS allowed origins:", origins)
 
 app = FastAPI()
 

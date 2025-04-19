@@ -1,30 +1,24 @@
 import { useState } from 'react'
 import axios from 'axios'
-import { Typography, Button, Box, Alert, InputLabel, Stack, CircularProgress } from '@mui/material'
+import { Typography, Button, Box, Alert, CircularProgress } from '@mui/material'
 
 interface FileUploaderProps {
   onUploadSuccess?: () => void
 }
 
 const FileUploader = ({ onUploadSuccess }: FileUploaderProps) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [message, setMessage] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files?.length) {
-      setSelectedFile(event.target.files[0])
-      setMessage('')
-    }
-  }
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
 
-  const handleUpload = async () => {
-    if (!selectedFile) return
-
-    const formData = new FormData()
-    formData.append('file', selectedFile)
     setLoading(true)
     setMessage('')
+
+    const formData = new FormData()
+    formData.append('file', file)
 
     try {
       const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/upload`, formData, {
@@ -33,10 +27,7 @@ const FileUploader = ({ onUploadSuccess }: FileUploaderProps) => {
         },
       })
       setMessage(response.data.message)
-      setSelectedFile(null)
-
-      // Trigger parent refresh if provided
-      if (onUploadSuccess) onUploadSuccess()
+      onUploadSuccess?.()
     } catch (error: any) {
       console.error('Upload error:', error)
       if (error.response) {
@@ -57,29 +48,15 @@ const FileUploader = ({ onUploadSuccess }: FileUploaderProps) => {
         PDF hochladen
       </Typography>
 
-      <Stack direction="row" spacing={2} alignItems="center">
-        <InputLabel htmlFor="file-upload">
-          <Button variant="outlined" component="label" disabled={loading}>
-            Datei wählen
-            <input hidden id="file-upload" type="file" onChange={handleFileChange} accept=".pdf" />
-          </Button>
-        </InputLabel>
-
-        <Button
-          variant="contained"
-          onClick={handleUpload}
-          disabled={!selectedFile || loading}
-          startIcon={loading ? <CircularProgress size={20} /> : null}
-        >
-          {loading ? 'Hochladen...' : 'Hochladen'}
-        </Button>
-      </Stack>
-
-      {selectedFile && (
-        <Typography variant="body2" sx={{ mt: 1 }}>
-          Ausgewählt: {selectedFile.name}
-        </Typography>
-      )}
+      <Button
+        variant="contained"
+        component="label"
+        disabled={loading}
+        startIcon={loading ? <CircularProgress size={20} /> : null}
+      >
+        {loading ? 'Wird hochgeladen...' : 'PDF auswählen & hochladen'}
+        <input hidden type="file" accept=".pdf" onChange={handleFileChange} />
+      </Button>
 
       {message && (
         <Alert severity={message.startsWith('Upload failed') ? 'error' : 'success'} sx={{ mt: 2 }}>
