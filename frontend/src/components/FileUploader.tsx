@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import axios from 'axios'
-import { Typography, Button, Box, Alert, InputLabel, Stack } from '@mui/material'
+import { Typography, Button, Box, Alert, InputLabel, Stack, CircularProgress } from '@mui/material'
 
 const FileUploader = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [message, setMessage] = useState<string>('')
+  const [loading, setLoading] = useState<boolean>(false)
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files?.length) {
       setSelectedFile(event.target.files[0])
-      setMessage('') // clear message on new selection
+      setMessage('')
     }
   }
 
@@ -18,6 +19,8 @@ const FileUploader = () => {
 
     const formData = new FormData()
     formData.append('file', selectedFile)
+    setLoading(true)
+    setMessage('')
 
     try {
       const response = await axios.post('http://127.0.0.1:8001/upload', formData, {
@@ -28,7 +31,6 @@ const FileUploader = () => {
       setMessage(response.data.message)
     } catch (error: any) {
       console.error('Upload error:', error)
-
       if (error.response) {
         setMessage(`Upload failed: ${error.response.data?.detail ?? 'Unknown server error'}`)
       } else if (error.request) {
@@ -36,6 +38,8 @@ const FileUploader = () => {
       } else {
         setMessage(`Upload failed: ${error.message}`)
       }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -47,14 +51,19 @@ const FileUploader = () => {
 
       <Stack direction="row" spacing={2} alignItems="center">
         <InputLabel htmlFor="file-upload">
-          <Button variant="outlined" component="label">
+          <Button variant="outlined" component="label" disabled={loading}>
             Datei wählen
             <input hidden id="file-upload" type="file" onChange={handleFileChange} accept=".pdf" />
           </Button>
         </InputLabel>
 
-        <Button variant="contained" onClick={handleUpload} disabled={!selectedFile}>
-          Hochladen
+        <Button
+          variant="contained"
+          onClick={handleUpload}
+          disabled={!selectedFile || loading}
+          startIcon={loading ? <CircularProgress size={20} /> : null}
+        >
+          {loading ? 'Hochladen...' : 'Hochladen'}
         </Button>
       </Stack>
 
