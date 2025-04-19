@@ -13,11 +13,11 @@ import FileUploader from './components/FileUploader'
 import ResetButton from './components/ResetButton'
 import theme from './theme'
 
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-  },
-})
+// const darkTheme = createTheme({
+//   palette: {
+//     mode: 'dark',
+//   },
+// })
 
 function App() {
   return (
