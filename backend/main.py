@@ -208,7 +208,7 @@ async def test_db_write():
     try:
         conn = psycopg2.connect(os.getenv("DATABASE_URL"))
         cur = conn.cursor()
-        
+
         test_vector = [0.0] * 768
         cur.execute("""
             INSERT INTO documents (chunk, source, page, embedding)
@@ -217,4 +217,30 @@ async def test_db_write():
         conn.commit()
         return {"status": "success"}
     except Exception as e:
+        return {"status": "failed", "error": str(e)}
+    
+@app.get("/test-db-write-many")
+async def test_db_write_many():
+    try:
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        cur = conn.cursor()
+
+        test_vectors = []
+        for i in range(50):
+            test_vectors.append((
+                f"test chunk {i+1}",
+                "testfile.pdf",
+                i + 1,
+                [float(i % 10)] * 768
+            ))
+
+        cur.executemany("""
+            INSERT INTO documents (chunk, source, page, embedding)
+            VALUES (%s, %s, %s, %s::vector)
+        """, test_vectors)
+        conn.commit()
+        return {"status": "success", "inserted": len(test_vectors)}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return {"status": "failed", "error": str(e)}
