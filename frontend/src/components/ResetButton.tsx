@@ -6,7 +6,7 @@ const ResetButton: React.FC = () => {
     if (!confirm) return
 
     try {
-      await axios.post('http://127.0.0.1:8001/reset')
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/reset`)
       alert('Vectorstore has been cleared!')
     } catch (error) {
       console.error('Error resetting vectorstore:', error)
