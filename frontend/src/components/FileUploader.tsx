@@ -20,11 +20,7 @@ const FileUploader = () => {
     formData.append('file', selectedFile)
 
     try {
-      const response = await axios.post('http://127.0.0.1:8001/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/upload`, formData, {})
       setMessage(response.data.message)
     } catch (error: any) {
       console.error('Upload error:', error)
