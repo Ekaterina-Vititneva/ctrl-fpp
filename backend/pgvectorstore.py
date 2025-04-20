@@ -6,14 +6,20 @@ from pgvector.psycopg2 import register_vector
 
 load_dotenv()
 
-# Construct database URL from parts
-DB_USER = os.getenv("POSTGRES_USER")
-DB_PASS = os.getenv("POSTGRES_PASSWORD")
-DB_HOST = os.getenv("POSTGRES_HOST")
-DB_PORT = os.getenv("POSTGRES_PORT")
-DB_NAME = os.getenv("POSTGRES_DB")
+DB_URL = os.getenv("DATABASE_URL")
 
-DB_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+if not DB_URL:
+    DB_NAME = os.getenv("POSTGRES_DB")
+    DB_USER = os.getenv("POSTGRES_USER")
+    DB_PASS = os.getenv("POSTGRES_PASSWORD")
+    DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
+    DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+
+    missing = [k for k in ['DB_NAME', 'DB_USER', 'DB_PASS'] if not locals().get(k)]
+    if missing:
+        raise ValueError(f"Missing DB env variables: {missing}")
+
+    DB_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # Connect and register the vector extension
 conn = psycopg2.connect(DB_URL)
