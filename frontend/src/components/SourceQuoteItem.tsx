@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Paper, Box, Typography, Button } from '@mui/material'
+import { Paper, Box, Typography, Button, useTheme } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import Highlighter from 'react-highlight-words'
 
@@ -25,8 +25,11 @@ export default function SourceQuoteItem({
   page,
   questionWords = [],
 }: SourceQuoteItemProps) {
+  const theme = useTheme()
   const [expanded, setExpanded] = useState(false)
   const handleToggle = () => setExpanded(!expanded)
+
+  console.log('📦 chunk:', chunk)
 
   const isTruncated = chunk.length > MAX_LENGTH
   const displayText = expanded ? chunk : truncateText(chunk, MAX_LENGTH)
@@ -37,14 +40,16 @@ export default function SourceQuoteItem({
       sx={{
         p: 2,
         backgroundColor: 'background.default',
-        borderLeft: '4px solid #1976d2',
+        borderLeft: `4px solid ${theme.palette.primary.main}`,
       }}
     >
       <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mb: 1 }}>
         <Highlighter
           highlightStyle={{
-            backgroundColor: 'yellow',
-            padding: 0,
+            backgroundColor: `${theme.palette.primary.main}25`,
+            color: `${theme.palette.primary.main}`,
+            padding: '1px',
+            borderRadius: '4px',
           }}
           searchWords={questionWords}
           autoEscape={true}

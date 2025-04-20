@@ -7,7 +7,7 @@ const QuestionBox = () => {
 
   const handleAsk = async () => {
     try {
-      const response = await axios.post('http://127.0.0.1:8001/query', {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/query`, {
         question,
       })
       setAnswer(response.data)

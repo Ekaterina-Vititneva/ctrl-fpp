@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import os
 import shutil
 from pydantic import BaseModel
@@ -7,19 +8,23 @@ from typing import List
 from llm_loader import get_llm
 import traceback
 from dotenv import load_dotenv
+import psycopg2
 
 # Import your new page-based parser and chunker
 from parser import parse_pdf_pages, chunk_pdf_pages
-from embedding_model import get_embedding
-from rag import vectorstore
+from embedding_model import get_embedding, get_embedding_with_metadata
+#from rag import vectorstore
+import pgvectorstore as vectorstore
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+origins = os.getenv("FRONTEND_ORIGINS", "").split(",")
+print("🔓 CORS allowed origins:", origins)
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,30 +50,50 @@ async def upload_file(file: UploadFile = File(...)):
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        print("✅ Uploaded:", filename)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
+    
     # 2. Parse & chunk the PDF into (page, chunk) dicts
     try:
         # parse each page individually
         parsed_pages = parse_pdf_pages(file_path)
+        print("📄 Parsed", len(parsed_pages), "pages")
         # chunk them
         chunked_pages = chunk_pdf_pages(parsed_pages, chunk_size=300, overlap=50)
+        print("✂️ Chunked into", len(chunked_pages), "chunks")
 
-        # 3. Prepare embeddings
-        # We only need the 'chunk' text for embedding
-        chunk_texts = [cp["chunk"] for cp in chunked_pages]
-        embeddings = get_embedding(chunk_texts)
+        if chunked_pages:
+            print("🧠 First chunk:", chunked_pages[0])
+        else:
+            print("⚠️ No chunks found!")
 
-        # 4. Add to vectorstore
-        # Our rag.py expects:
-        #    add_embeddings(embeddings: List[List[float]], chunk_dicts: List[Dict], filename: str)
-        # so we can store {"text", "source", "page"} in doc_chunks.
-        
-        vectorstore.add_embeddings(embeddings, chunked_pages, filename)
+        # Add 'source' to each chunk dict
+        for chunk in chunked_pages:
+            chunk["source"] = filename  # needed for metadata
+
+        # Get embeddings and metadata
+        embeddings, texts, sources, pages = get_embedding_with_metadata(chunked_pages)
+
+        # Reconstruct proper chunk dicts for DB insertion
+        chunk_dicts = [
+            {"chunk": text, "source": source, "page": page}
+            for text, source, page in zip(texts, sources, pages)
+        ]
+
+
+        # Save into pgvector DB
+        # vectorstore.add_embeddings(embeddings, chunk_dicts, filename)
+        try:
+            vectorstore.add_embeddings(embeddings, chunk_dicts, filename)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=f"DB error: {str(e)}")
+
 
         # 5. Save index
-        vectorstore.save()
+        # vectorstore.save()
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error parsing or embedding PDF: {str(e)}")
@@ -108,7 +133,7 @@ async def ask_docs(req: AskRequest, request: Request):
         context = "\n\n".join([r["chunk"] for r in results])
 
         prompt = f"""
-        You are a helpful assistant. Use the context to answer the question.
+        You are a helpful assistant. Use the context to answer the question. Use markdown for the answer to structure it, if needed. 
         Context:
         {context}
 
@@ -121,7 +146,12 @@ async def ask_docs(req: AskRequest, request: Request):
         answer_text = answer_raw.content if hasattr(answer_raw, "content") else str(answer_raw)
 
         print("🔍 Query embedding:", q_embedding[:5], "...")
-        print("📄 Vectorstore has", len(vectorstore.doc_chunks), "chunks")
+        #print("📄 Vectorstore has", len(vectorstore.doc_chunks), "chunks")
+        cur = vectorstore.conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM documents")
+        chunk_count = cur.fetchone()[0]
+        print("📄 Vectorstore has", chunk_count, "chunks")
+
 
         for i, r in enumerate(results):
             print(f"🔗 {i+1}. {r['source']} (score: {r['distance']:.4f})")
@@ -161,3 +191,56 @@ def status():
         "llm": os.getenv("LLM_PROVIDER", "openai"),
         "docs_loaded": len(vectorstore.doc_chunks)
     }
+
+@app.get("/documents")
+def list_uploaded_documents():
+    try:
+        cur = vectorstore.conn.cursor()
+        cur.execute("SELECT DISTINCT source FROM documents")
+        rows = cur.fetchall()
+        documents = [row[0] for row in rows]
+        return JSONResponse(content={"documents": documents})
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@app.get("/test-db-write")
+async def test_db_write():
+    try:
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        cur = conn.cursor()
+
+        test_vector = [0.0] * 768
+        cur.execute("""
+            INSERT INTO documents (chunk, source, page, embedding)
+            VALUES (%s, %s, %s, %s::vector)
+        """, ("test", "test", 1, test_vector))
+        conn.commit()
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "failed", "error": str(e)}
+    
+@app.get("/test-db-write-many")
+async def test_db_write_many():
+    try:
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        cur = conn.cursor()
+
+        test_vectors = []
+        for i in range(50):
+            test_vectors.append((
+                f"test chunk {i+1}",
+                "testfile.pdf",
+                i + 1,
+                [float(i % 10)] * 768
+            ))
+
+        cur.executemany("""
+            INSERT INTO documents (chunk, source, page, embedding)
+            VALUES (%s, %s, %s, %s::vector)
+        """, test_vectors)
+        conn.commit()
+        return {"status": "success", "inserted": len(test_vectors)}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "failed", "error": str(e)}

@@ -4,7 +4,8 @@ import torch
 
 # Load local embedding model
 # e5-small-v2 for semantic search
-model_name = "intfloat/e5-small-v2"
+# model_name = "intfloat/e5-small-v2"
+model_name = "sentence-transformers/all-mpnet-base-v2"
 embedding_model = SentenceTransformer(model_name)
 
 def get_embedding(texts: List[str]) -> List[List[float]]:
@@ -28,7 +29,7 @@ def get_embedding_with_metadata(chunks: List[Dict]) -> (List[List[float]], List[
     - sources: list of filenames
     - pages: list of page numbers
     """
-    texts = [c["text"] for c in chunks]
+    texts = [c["chunk"] for c in chunks]
     sources = [c["source"] for c in chunks]
     pages = [c["page"] for c in chunks]
     embeddings = get_embedding(texts)

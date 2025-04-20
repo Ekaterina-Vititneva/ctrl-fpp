@@ -1,34 +1,35 @@
 import { useState } from 'react'
 import axios from 'axios'
-import { Typography, Button, Box, Alert, InputLabel, Stack } from '@mui/material'
+import { Typography, Button, Box, Alert, CircularProgress } from '@mui/material'
 
-const FileUploader = () => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+interface FileUploaderProps {
+  onUploadSuccess?: () => void
+}
+
+const FileUploader = ({ onUploadSuccess }: FileUploaderProps) => {
   const [message, setMessage] = useState<string>('')
+  const [loading, setLoading] = useState<boolean>(false)
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files?.length) {
-      setSelectedFile(event.target.files[0])
-      setMessage('') // clear message on new selection
-    }
-  }
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
 
-  const handleUpload = async () => {
-    if (!selectedFile) return
+    setLoading(true)
+    setMessage('')
 
     const formData = new FormData()
-    formData.append('file', selectedFile)
+    formData.append('file', file)
 
     try {
-      const response = await axios.post('http://127.0.0.1:8001/upload', formData, {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       })
       setMessage(response.data.message)
+      onUploadSuccess?.()
     } catch (error: any) {
       console.error('Upload error:', error)
-
       if (error.response) {
         setMessage(`Upload failed: ${error.response.data?.detail ?? 'Unknown server error'}`)
       } else if (error.request) {
@@ -36,6 +37,8 @@ const FileUploader = () => {
       } else {
         setMessage(`Upload failed: ${error.message}`)
       }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -45,24 +48,15 @@ const FileUploader = () => {
         PDF hochladen
       </Typography>
 
-      <Stack direction="row" spacing={2} alignItems="center">
-        <InputLabel htmlFor="file-upload">
-          <Button variant="outlined" component="label">
-            Datei wählen
-            <input hidden id="file-upload" type="file" onChange={handleFileChange} accept=".pdf" />
-          </Button>
-        </InputLabel>
-
-        <Button variant="contained" onClick={handleUpload} disabled={!selectedFile}>
-          Hochladen
-        </Button>
-      </Stack>
-
-      {selectedFile && (
-        <Typography variant="body2" sx={{ mt: 1 }}>
-          Ausgewählt: {selectedFile.name}
-        </Typography>
-      )}
+      <Button
+        variant="contained"
+        component="label"
+        disabled={loading}
+        startIcon={loading ? <CircularProgress size={20} /> : null}
+      >
+        {loading ? 'Wird hochgeladen...' : 'PDF auswählen & hochladen'}
+        <input hidden type="file" accept=".pdf" onChange={handleFileChange} />
+      </Button>
 
       {message && (
         <Alert severity={message.startsWith('Upload failed') ? 'error' : 'success'} sx={{ mt: 2 }}>
