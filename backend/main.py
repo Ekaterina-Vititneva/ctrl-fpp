@@ -72,17 +72,24 @@ async def upload_file(file: UploadFile = File(...)):
             chunk["source"] = filename  # needed for metadata
 
         # Get embeddings and metadata
-        #embeddings, texts, sources, pages = get_embedding_with_metadata(chunked_pages)
+        embeddings, texts, sources, pages = get_embedding_with_metadata(chunked_pages)
 
         # Reconstruct proper chunk dicts for DB insertion
-        # chunk_dicts = [
-        #     {"chunk": text, "source": source, "page": page}
-        #     for text, source, page in zip(texts, sources, pages)
-        # ]
+        chunk_dicts = [
+            {"chunk": text, "source": source, "page": page}
+            for text, source, page in zip(texts, sources, pages)
+        ]
 
 
         # Save into pgvector DB
         # vectorstore.add_embeddings(embeddings, chunk_dicts, filename)
+        try:
+            vectorstore.add_embeddings(embeddings, chunk_dicts, filename)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=f"DB error: {str(e)}")
+
 
         # 5. Save index
         # vectorstore.save()
