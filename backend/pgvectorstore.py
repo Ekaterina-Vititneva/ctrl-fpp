@@ -8,13 +8,14 @@ load_dotenv()
 
 DB_URL = os.getenv("DATABASE_URL")
 
-if not DB_URL:
-    DB_NAME = os.getenv("POSTGRES_DB")
-    DB_USER = os.getenv("POSTGRES_USER")
-    DB_PASS = os.getenv("POSTGRES_PASSWORD")
-    DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
-    DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+DB_NAME = os.getenv("POSTGRES_DB")
+DB_USER = os.getenv("POSTGRES_USER")
+DB_PASS = os.getenv("POSTGRES_PASSWORD")
+DB_HOST = os.getenv("POSTGRES_HOST")
+DB_PORT = os.getenv("POSTGRES_PORT")
 
+if not DB_URL:
+    
     missing = [k for k in ['DB_NAME', 'DB_USER', 'DB_PASS'] if not locals().get(k)]
     if missing:
         raise ValueError(f"Missing DB env variables: {missing}")

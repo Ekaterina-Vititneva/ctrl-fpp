@@ -202,3 +202,18 @@ def list_uploaded_documents():
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
+@app.get("/test-db-write")
+def test_db_write():
+    try:
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        cur = conn.cursor()
+        
+        # Test a simple vector insert
+        cur.execute("""
+            INSERT INTO documents (chunk, source, page, embedding)
+            VALUES ('test', 'test', 1, '[0.1, 0.2, 0.3]'::vector)
+        """)
+        conn.commit()
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "failed", "error": str(e)}
