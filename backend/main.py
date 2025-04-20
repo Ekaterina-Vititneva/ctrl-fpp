@@ -8,6 +8,7 @@ from typing import List
 from llm_loader import get_llm
 import traceback
 from dotenv import load_dotenv
+import psycopg2
 
 # Import your new page-based parser and chunker
 from parser import parse_pdf_pages, chunk_pdf_pages
