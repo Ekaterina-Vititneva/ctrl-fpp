@@ -21,11 +21,7 @@ const FileUploader = ({ onUploadSuccess }: FileUploaderProps) => {
     formData.append('file', file)
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/upload`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/upload`, formData, {})
       setMessage(response.data.message)
       onUploadSuccess?.()
     } catch (error: any) {

@@ -6,7 +6,7 @@
 
 Built with:
 
-- 🧠 LangChain + FAISS for vector search
+- 🧠 LangChain + Semantic vector search via pgvector (or FAISS, optional)
 - 🐍 FastAPI for backend + embeddings
 - ⚛️ React + TypeScript frontend
 - ⚙️ LLM flexibility: switch between OpenAI (e.g., GPT-4o-mini) or local models (via Ollama)
@@ -20,7 +20,7 @@ Built with:
 - 📄 Upload PDF documents
 - 🔎 Chunk & embed content using sentence-transformers
 - 💬 Ask natural-language questions
-- 🔗 Retrieve most relevant context via FAISS
+- 🔗Store vector embeddings in FAISS or pgvector
 - 🤖 Get answers from OpenAI or Ollama (locally run LLMs)
 - 🧹 Reset knowledge base anytime
 
@@ -71,6 +71,7 @@ ctrl-fpp/
 ├── backend/
 │   ├── main.py                 # FastAPI app entry
 │   ├── rag.py                  # Core RAG logic (embedding, retrieval, answering)
+│   ├── pgvectorstore.py        # pgvector wrapper
 │   ├── parser.py               # PDF/text chunker
 │   ├── embedding_model.py      # Load and use embedding model
 │   ├── llm_loader.py           # Configurable LLM loader (OpenAI, Ollama, etc.)
