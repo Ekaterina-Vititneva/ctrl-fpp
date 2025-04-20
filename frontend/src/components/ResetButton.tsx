@@ -1,4 +1,6 @@
+import React from 'react'
 import axios from 'axios'
+import Button from '@mui/material/Button'
 
 const ResetButton: React.FC = () => {
   const handleReset = async () => {
@@ -15,9 +17,15 @@ const ResetButton: React.FC = () => {
   }
 
   return (
-    <button onClick={handleReset} style={{ marginTop: '1rem', padding: '0.5rem 1rem' }}>
-      🧹 Reset Knowledge Base
-    </button>
+    <Button
+      variant="contained"
+      size="small"
+      onClick={handleReset}
+      startIcon={<span>🧹</span>}
+      sx={{ mt: 2 }}
+    >
+      Reset Knowledge Base
+    </Button>
   )
 }
 
