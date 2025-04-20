@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request, status
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import os
@@ -15,6 +15,7 @@ from parser import parse_pdf_pages, chunk_pdf_pages
 from embedding_model import get_embedding, get_embedding_with_metadata
 #from rag import vectorstore
 import pgvectorstore as vectorstore
+from tasks import process_pdf
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 origins = os.getenv("FRONTEND_ORIGINS", "").split(",")
@@ -41,64 +42,25 @@ def read_root():
     return {"message": "Hello from ctrl-fpp!"}
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    """Uploads a PDF, parses & chunks it by page, embeds it, and adds to FAISS with page info."""
+async def upload_file(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
     filename = file.filename
     file_path = os.path.join(UPLOAD_DIR, filename)
 
-    # 1. Save the PDF
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         print("✅ Uploaded:", filename)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-    # 2. Parse & chunk the PDF into (page, chunk) dicts
-    try:
-        # parse each page individually
-        parsed_pages = parse_pdf_pages(file_path)
-        print("📄 Parsed", len(parsed_pages), "pages")
-        # chunk them
-        chunked_pages = chunk_pdf_pages(parsed_pages, chunk_size=300, overlap=50)
-        print("✂️ Chunked into", len(chunked_pages), "chunks")
 
-        if chunked_pages:
-            print("🧠 First chunk:", chunked_pages[0])
-        else:
-            print("⚠️ No chunks found!")
+    # Add background processing task
+    background_tasks.add_task(process_pdf, filename, file_path)
 
-        # Add 'source' to each chunk dict
-        for chunk in chunked_pages:
-            chunk["source"] = filename  # needed for metadata
+    return {
+        "filename": filename,
+        "message": "Upload successful! Processing is running in the background."
+    }
 
-        # Get embeddings and metadata
-        embeddings, texts, sources, pages = get_embedding_with_metadata(chunked_pages)
-
-        # Reconstruct proper chunk dicts for DB insertion
-        chunk_dicts = [
-            {"chunk": text, "source": source, "page": page}
-            for text, source, page in zip(texts, sources, pages)
-        ]
-
-
-        # Save into pgvector DB
-        # vectorstore.add_embeddings(embeddings, chunk_dicts, filename)
-        try:
-            vectorstore.add_embeddings(embeddings, chunk_dicts, filename)
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            raise HTTPException(status_code=500, detail=f"DB error: {str(e)}")
-
-
-        # 5. Save index
-        # vectorstore.save()
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error parsing or embedding PDF: {str(e)}")
-
-    return {"filename": filename, "message": "Upload + embedding successful!"}
 
 
 # @app.post("/query")
