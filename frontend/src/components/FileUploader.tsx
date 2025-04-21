@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
-import { Typography, Button, Box, CircularProgress, LinearProgress, Paper } from '@mui/material'
+import { Typography, Button, Box, LinearProgress, Paper } from '@mui/material'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
 
 interface FileUploaderProps {
@@ -137,12 +137,10 @@ export default function FileUploader({ onUploadSuccess }: FileUploaderProps) {
         ) : (
           /* ────────── PLACEHOLDER PANEL ────────── */
           <Box
-            variant="outlined"
             sx={{
               mt: 2,
               p: 2,
               display: 'flex',
-              alignItems: 'top',
               justifyContent: 'left',
               color: 'text.secondary',
               minHeight: 84,

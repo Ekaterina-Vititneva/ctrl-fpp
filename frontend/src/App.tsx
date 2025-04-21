@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { Typography, Box, CssBaseline, ThemeProvider, Divider, Paper } from '@mui/material'
+import { Typography, Box, CssBaseline, ThemeProvider, Divider } from '@mui/material'
 
 import AskBox from './components/AskBox'
 import FileUploader from './components/FileUploader'
@@ -41,7 +41,6 @@ export default function App() {
         >
           {/* ---- FIXED LEFT RAIL ---- */}
           <Box
-            elevation={1}
             sx={{
               width: 240,
               flexShrink: 0,
