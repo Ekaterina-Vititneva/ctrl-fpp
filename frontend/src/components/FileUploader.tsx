@@ -1,14 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
-import {
-  Typography,
-  Button,
-  Box,
-  Alert,
-  CircularProgress,
-  LinearProgress,
-  Paper,
-} from '@mui/material'
+import { Typography, Button, Box, CircularProgress, LinearProgress, Paper } from '@mui/material'
 
 interface FileUploaderProps {
   onUploadSuccess?: () => void // refresh docs list in <App>
@@ -24,7 +16,7 @@ interface JobStatus {
 const POLL_MS = 1_000 // how often to poll /status/<job_id>
 
 export default function FileUploader({ onUploadSuccess }: FileUploaderProps) {
-  const [message, setMessage] = useState<string>('')
+  const [, setMessage] = useState<string>('')
   const [uploading, setUploading] = useState<boolean>(false)
   const [, setJobId] = useState<string | null>(null)
   const [status, setStatus] = useState<JobStatus | null>(null)

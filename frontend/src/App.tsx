@@ -44,7 +44,7 @@ function App() {
         </Box>
 
         <Box my={4}>
-          <ResetButton />
+          <ResetButton onResetSuccess={fetchDocuments} />
         </Box>
       </Container>
     </ThemeProvider>

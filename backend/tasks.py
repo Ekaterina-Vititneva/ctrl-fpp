@@ -8,7 +8,7 @@ import pgvectorstore as vectorstore
 from job_registry import jobs
 
 # Granularity knobs
-BATCH_SIZE       = 8          # ↓ smaller → more UI ticks during embedding
+BATCH_SIZE       = 1         
 PARSE_WEIGHT     = 0.10       # 0 – 0.30   of the bar
 CHUNK_WEIGHT     = 0.05       # 0.30 – 0.35
 EMBED_WEIGHT     = 0.80       # 0.35 – 0.95
@@ -67,6 +67,8 @@ def process_pdf(job_id: str, filename: str, file_path: str) -> None:
                 c["source"] = filename
 
             e, t, s, p = get_embedding_with_metadata(batch)
+            print(f"🧠 Embedding batch of {len(batch)} chunks → {len(e)} embeddings")
+
             embeddings.extend(e)
             chunk_dicts.extend(
                 {"chunk": txt, "source": src, "page": pg}
