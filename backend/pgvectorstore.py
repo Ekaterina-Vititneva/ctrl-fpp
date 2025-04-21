@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS documents (
     chunk TEXT,
     source TEXT,
     page INTEGER,
-    embedding VECTOR(768)
+    embedding VECTOR(384)
 )
 """)
 conn.commit()

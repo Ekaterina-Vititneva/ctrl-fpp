@@ -4,8 +4,8 @@ import torch
 
 # Load local embedding model
 # e5-small-v2 for semantic search
-# model_name = "intfloat/e5-small-v2"
-model_name = "sentence-transformers/all-mpnet-base-v2"
+model_name = "intfloat/e5-small-v2"
+# model_name = "sentence-transformers/all-mpnet-base-v2"
 embedding_model = SentenceTransformer(model_name)
 
 def get_embedding(texts: List[str]) -> List[List[float]]:
