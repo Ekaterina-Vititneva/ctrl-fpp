@@ -30,14 +30,18 @@ CREATE TABLE IF NOT EXISTS documents (
     chunk TEXT,
     source TEXT,
     page INTEGER,
-    embedding VECTOR(768)
+    embedding VECTOR(384)
 )
 """)
 conn.commit()
 
 def reset():
-    cur.execute("DELETE FROM documents")
-    conn.commit()
+    with psycopg2.connect(DB_URL) as conn:
+        register_vector(conn)
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM documents")
+            conn.commit()
+
 
 def add_embeddings(embeddings, chunk_dicts, filename):
     print("📥 Inserting", len(embeddings), "embeddings into DB")

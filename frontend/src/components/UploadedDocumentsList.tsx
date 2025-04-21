@@ -1,4 +1,4 @@
-import { Typography, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
+import { Typography, List, ListItem, ListItemIcon, ListItemText, Box } from '@mui/material'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 
 interface UploadedDocumentsListProps {
@@ -11,25 +11,27 @@ export default function UploadedDocumentsList({ documents }: UploadedDocumentsLi
   return (
     <div style={{ marginTop: '2rem' }}>
       <Typography variant="h6" gutterBottom>
-        Hochgeladene PDFs
+        Hochgeladene PDFs ({documents.length})
       </Typography>
-      <List>
-        {documents.map((doc, index) => (
-          <ListItem key={index}>
-            <ListItemIcon>
-              <PictureAsPdfIcon sx={{ color: theme => theme.palette.secondary.main }} />
-            </ListItemIcon>
-            <ListItemText
-              primary={doc}
-              slotProps={{
-                primary: {
-                  sx: { fontSize: '0.8rem' },
-                },
-              }}
-            />
-          </ListItem>
-        ))}
-      </List>
+      <Box sx={{ height: '230px', overflowY: 'auto' }}>
+        <List>
+          {documents.map((doc, index) => (
+            <ListItem key={index}>
+              <ListItemIcon>
+                <PictureAsPdfIcon sx={{ color: theme => theme.palette.secondary.main }} />
+              </ListItemIcon>
+              <ListItemText
+                primary={doc}
+                slotProps={{
+                  primary: {
+                    sx: { fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis' },
+                  },
+                }}
+              />
+            </ListItem>
+          ))}
+        </List>
+      </Box>
     </div>
   )
 }

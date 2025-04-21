@@ -20,15 +20,21 @@ const theme = createTheme({
     divider: 'rgba(255,255,255,0.08)',
   },
   typography: {
-    fontFamily: ['"Inter"', 'system-ui', 'sans-serif'].join(','),
+    fontFamily: ['"DM Sans"', 'system-ui', 'sans-serif'].join(','),
     fontSize: 14,
-    h1: { fontSize: '2.5rem', fontWeight: 700 },
-    h2: { fontSize: '2rem', fontWeight: 600 },
-    h3: { fontSize: '1.5rem', fontWeight: 500 },
+    h1: { fontSize: '2.5rem', fontWeight: 800 },
+    h2: { fontSize: '2.5rem', fontWeight: 800 },
+    h3: { fontSize: '2.5rem', fontWeight: 750 },
+    h4: { fontSize: '2rem', fontWeight: 500 },
+    h5: { fontSize: '1.5rem', fontWeight: 500 },
+    h6: { fontSize: '1rem', fontWeight: 500 },
     button: {
       textTransform: 'none',
       fontWeight: 500,
     },
+    body1: { fontSize: '1rem' },
+    body2: { fontSize: '0.875rem' },
+    caption: { fontSize: '0.75rem' },
   },
   shape: {
     borderRadius: 8,
@@ -43,6 +49,7 @@ const theme = createTheme({
         },
       },
     },
+
     MuiPaper: {
       styleOverrides: {
         root: {
@@ -57,7 +64,7 @@ const theme = createTheme({
           backgroundColor: '#111111',
           color: '#ffffff',
           border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 6,
+          borderRadius: 8,
           padding: '8px 16px',
           fontWeight: 500,
           '&:hover': {

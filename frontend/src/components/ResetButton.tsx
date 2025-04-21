@@ -1,6 +1,13 @@
+import React from 'react'
 import axios from 'axios'
+import Button from '@mui/material/Button'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 
-const ResetButton: React.FC = () => {
+interface ResetButtonProps {
+  onResetSuccess?: () => void
+}
+
+const ResetButton: React.FC<ResetButtonProps> = ({ onResetSuccess }) => {
   const handleReset = async () => {
     const confirm = window.confirm('Are you sure you want to clear the vectorstore?')
     if (!confirm) return
@@ -8,6 +15,7 @@ const ResetButton: React.FC = () => {
     try {
       await axios.post(`${import.meta.env.VITE_BACKEND_URL}/reset`)
       alert('Vectorstore has been cleared!')
+      onResetSuccess?.() // ← call the callback
     } catch (error) {
       console.error('Error resetting vectorstore:', error)
       alert('Reset failed')
@@ -15,9 +23,15 @@ const ResetButton: React.FC = () => {
   }
 
   return (
-    <button onClick={handleReset} style={{ marginTop: '1rem', padding: '0.5rem 1rem' }}>
-      🧹 Reset Knowledge Base
-    </button>
+    <Button
+      variant="contained"
+      size="small"
+      onClick={handleReset}
+      startIcon={<DeleteOutlineIcon />}
+      sx={{ mt: 2, justifyContent: 'left' }}
+    >
+      Reset Knowledge Base
+    </Button>
   )
 }
 

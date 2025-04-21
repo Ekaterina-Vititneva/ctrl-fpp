@@ -1,8 +1,7 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request, status
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import os
-import shutil
+import os, shutil, pathlib
 from pydantic import BaseModel
 from typing import List
 from llm_loader import get_llm
@@ -15,6 +14,8 @@ from parser import parse_pdf_pages, chunk_pdf_pages
 from embedding_model import get_embedding, get_embedding_with_metadata
 #from rag import vectorstore
 import pgvectorstore as vectorstore
+from tasks import process_pdf
+from job_registry import jobs
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 origins = os.getenv("FRONTEND_ORIGINS", "").split(",")
@@ -30,86 +31,53 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UPLOAD_DIR = "data/docs"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-# # class QueryRequest(BaseModel):
-#     question: str
+UPLOAD_DIR = pathlib.Path("data/docs")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 @app.get("/")
 def read_root():
     return {"message": "Hello from ctrl-fpp!"}
 
-@app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    """Uploads a PDF, parses & chunks it by page, embeds it, and adds to FAISS with page info."""
-    filename = file.filename
-    file_path = os.path.join(UPLOAD_DIR, filename)
+@app.post("/upload", status_code=202, response_model=None)
+async def upload_file(    
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+):
+    """
+    1. Saves the uploaded PDF to disk.
+    2. Registers a new JobRegistry entry → returns job_id immediately.
+    3. Schedules background parsing/embedding.
+    """
+    # ----- basic validation ---------------------------------------------------
+    fname = file.filename or "unnamed.pdf"
+    if not fname.lower().endswith(".pdf"):
+        raise HTTPException(400, "Only PDF files are supported.")
 
-    # 1. Save the PDF
+    file_path = UPLOAD_DIR / fname
+    # ----- persist the file ---------------------------------------------------
     try:
-        with open(file_path, "wb") as buffer:
+        with file_path.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        print("✅ Uploaded:", filename)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-    # 2. Parse & chunk the PDF into (page, chunk) dicts
-    try:
-        # parse each page individually
-        parsed_pages = parse_pdf_pages(file_path)
-        print("📄 Parsed", len(parsed_pages), "pages")
-        # chunk them
-        chunked_pages = chunk_pdf_pages(parsed_pages, chunk_size=300, overlap=50)
-        print("✂️ Chunked into", len(chunked_pages), "chunks")
+    except Exception as exc:
+        raise HTTPException(500, f"Could not write file: {exc}") from exc
 
-        if chunked_pages:
-            print("🧠 First chunk:", chunked_pages[0])
-        else:
-            print("⚠️ No chunks found!")
+    # ----- create a progress‑tracking job -------------------------------------
+    job_id = jobs.create(fname)          # state = "queued", progress = 0.0
 
-        # Add 'source' to each chunk dict
-        for chunk in chunked_pages:
-            chunk["source"] = filename  # needed for metadata
+    # ----- hand off to background worker -------------------------------------
+    background_tasks.add_task(process_pdf, job_id, fname, str(file_path))
 
-        # Get embeddings and metadata
-        embeddings, texts, sources, pages = get_embedding_with_metadata(chunked_pages)
-
-        # Reconstruct proper chunk dicts for DB insertion
-        chunk_dicts = [
-            {"chunk": text, "source": source, "page": page}
-            for text, source, page in zip(texts, sources, pages)
-        ]
-
-
-        # Save into pgvector DB
-        # vectorstore.add_embeddings(embeddings, chunk_dicts, filename)
-        try:
-            vectorstore.add_embeddings(embeddings, chunk_dicts, filename)
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            raise HTTPException(status_code=500, detail=f"DB error: {str(e)}")
-
-
-        # 5. Save index
-        # vectorstore.save()
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error parsing or embedding PDF: {str(e)}")
-
-    return {"filename": filename, "message": "Upload + embedding successful!"}
-
-
-# @app.post("/query")
-# async def query_docs(req: QueryRequest):
-#     """
-#     Takes a user question, gets an embedding, searches FAISS,
-#     and returns the top matching chunks (with page numbers).
-#     """
-#     q_embedding = get_embedding([req.question])[0]
-#     results = vectorstore.search(q_embedding, top_k=3)
-#     return {"question": req.question, "results": results}
+    # ----- immediate 202 Accepted response ------------------------------------
+    return JSONResponse(
+        {
+            "job_id": job_id,
+            "filename": fname,
+            "state": "queued",
+            "message": "Upload accepted – embedding will start in the background."
+        },
+        status_code=202,
+    )
+# ───────────────────────────────────────────────────────────────────────────────
 
 
 class AskRequest(BaseModel):
@@ -244,3 +212,10 @@ async def test_db_write_many():
         import traceback
         traceback.print_exc()
         return {"status": "failed", "error": str(e)}
+
+@app.get("/status/{job_id}")
+def check_status(job_id: str):
+    job = jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job

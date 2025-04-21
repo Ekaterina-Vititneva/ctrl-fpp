@@ -1,66 +1,161 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
-import { Typography, Button, Box, Alert, CircularProgress } from '@mui/material'
+import { Typography, Button, Box, LinearProgress, Paper } from '@mui/material'
+import UploadFileIcon from '@mui/icons-material/UploadFile'
 
 interface FileUploaderProps {
-  onUploadSuccess?: () => void
+  onUploadSuccess?: () => void // refresh docs list in <App>
 }
 
-const FileUploader = ({ onUploadSuccess }: FileUploaderProps) => {
-  const [message, setMessage] = useState<string>('')
-  const [loading, setLoading] = useState<boolean>(false)
+interface JobStatus {
+  state: string // queued | parsing | chunking | embedding | storing | done | error
+  progress: number // 0.0 – 1.0
+  phase?: string
+  error?: string
+}
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+const POLL_MS = 1_000 // how often to poll /status/<job_id>
+
+export default function FileUploader({ onUploadSuccess }: FileUploaderProps) {
+  const [, setMessage] = useState<string>('')
+  const [uploading, setUploading] = useState<boolean>(false)
+  const [, setJobId] = useState<string | null>(null)
+  const [status, setStatus] = useState<JobStatus | null>(null)
+
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const backend = import.meta.env.VITE_BACKEND_URL
+
+  // ─── progress‑bar helpers ───────────────────────────────────────────
+  const isWorking = status && !['done', 'error'].includes(status.state)
+  const isDeterm = status && ['parsing', 'chunking', 'embedding'].includes(status.state)
+  const barVariant = isDeterm ? 'determinate' : 'indeterminate'
+  const barValue = status ? Math.round((status.progress ?? 0) * 100) : 0
+  // ────────────────────────────────────────────────────────────────────
+
+  const startPolling = (id: string) => {
+    timerRef.current = setInterval(async () => {
+      try {
+        const res = await axios.get<JobStatus>(`${backend}/status/${id}`)
+        setStatus(res.data)
+
+        if (['done', 'error'].includes(res.data.state)) {
+          clearInterval(timerRef.current!)
+          if (res.data.state === 'done') {
+            setMessage('✅ Verarbeitung abgeschlossen')
+            onUploadSuccess?.()
+          } else {
+            setMessage(`⚠️ Fehler: ${res.data.error}`)
+          }
+        }
+      } catch (err) {
+        console.error('Status polling failed', err)
+        clearInterval(timerRef.current!)
+        setMessage('⚠️ Statusabfrage fehlgeschlagen')
+      }
+    }, POLL_MS)
+  }
+
+  // clean‑up on unmount
+  useEffect(() => () => clearInterval(timerRef.current!), [])
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
     if (!file) return
 
-    setLoading(true)
+    setUploading(true)
     setMessage('')
+    setStatus(null)
 
     const formData = new FormData()
     formData.append('file', file)
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/upload`, formData, {})
-      setMessage(response.data.message)
-      onUploadSuccess?.()
-    } catch (error: any) {
-      console.error('Upload error:', error)
-      if (error.response) {
-        setMessage(`Upload failed: ${error.response.data?.detail ?? 'Unknown server error'}`)
-      } else if (error.request) {
-        setMessage('Upload failed: No response from server')
-      } else {
-        setMessage(`Upload failed: ${error.message}`)
-      }
+      const res = await axios.post<{ job_id: string; message: string }>(
+        `${backend}/upload`,
+        formData
+      )
+
+      setJobId(res.data.job_id)
+      setMessage(res.data.message)
+      startPolling(res.data.job_id)
+    } catch (err: any) {
+      console.error('Upload error', err)
+      setMessage(
+        err.response?.data?.detail
+          ? `Upload fehlgeschlagen: ${err.response.data.detail}`
+          : 'Upload fehlgeschlagen'
+      )
     } finally {
-      setLoading(false)
+      setUploading(false)
     }
   }
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>
+      {/* <Typography variant="h6" gutterBottom>
         PDF hochladen
-      </Typography>
+      </Typography> */}
 
       <Button
         variant="contained"
         component="label"
-        disabled={loading}
-        startIcon={loading ? <CircularProgress size={20} /> : null}
+        fullWidth
+        disabled={uploading}
+        startIcon={<UploadFileIcon />}
+        // endIcon={uploading ? <CircularProgress size={20} color="inherit" /> : null}
+        sx={{
+          justifyContent: 'left', // keep text centered with icons at ends
+          textTransform: 'none', // optional: keep casing
+          px: 2, // add horizontal padding if needed
+        }}
       >
-        {loading ? 'Wird hochgeladen...' : 'PDF auswählen & hochladen'}
+        {uploading ? 'Wird hochgeladen…' : 'PDF auswählen'}
         <input hidden type="file" accept=".pdf" onChange={handleFileChange} />
       </Button>
 
-      {message && (
-        <Alert severity={message.startsWith('Upload failed') ? 'error' : 'success'} sx={{ mt: 2 }}>
+      <Box sx={{ minHeight: 88 /* keeps layout from jumping */ }}>
+        {status ? (
+          /* ────────── REAL PROGRESS PANEL ────────── */
+          <Paper variant="outlined" sx={{ mt: 2, p: 2 }}>
+            <Typography variant="body2" gutterBottom>
+              {status.state === 'done'
+                ? '✅ Fertig'
+                : status.state === 'error'
+                  ? '❌ Fehler'
+                  : `⏳ ${status.state}…`}
+            </Typography>
+
+            {isWorking && <LinearProgress variant={barVariant} value={barValue} />}
+
+            {status.phase && (
+              <Typography variant="caption" color="text.secondary">
+                {status.phase}
+              </Typography>
+            )}
+          </Paper>
+        ) : (
+          /* ────────── PLACEHOLDER PANEL ────────── */
+          <Box
+            sx={{
+              mt: 2,
+              p: 2,
+              display: 'flex',
+              justifyContent: 'left',
+              color: 'text.secondary',
+              minHeight: 84,
+            }}
+          >
+            {/* <Typography variant="body2">Lade eine PDF hoch</Typography> */}
+          </Box>
+        )}
+      </Box>
+
+      {/* {message && (
+        <Alert severity={message.startsWith('⚠️') ? 'error' : 'info'} sx={{ mt: 2 }}>
           {message}
         </Alert>
-      )}
+      )} */}
     </Box>
   )
 }
-
-export default FileUploader
