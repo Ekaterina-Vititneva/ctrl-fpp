@@ -1,6 +1,7 @@
 import React from 'react'
 import axios from 'axios'
 import Button from '@mui/material/Button'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 
 interface ResetButtonProps {
   onResetSuccess?: () => void
@@ -26,8 +27,8 @@ const ResetButton: React.FC<ResetButtonProps> = ({ onResetSuccess }) => {
       variant="contained"
       size="small"
       onClick={handleReset}
-      startIcon={<span>🧹</span>}
-      sx={{ mt: 2 }}
+      startIcon={<DeleteOutlineIcon />}
+      sx={{ mt: 2, justifyContent: 'left' }}
     >
       Reset Knowledge Base
     </Button>

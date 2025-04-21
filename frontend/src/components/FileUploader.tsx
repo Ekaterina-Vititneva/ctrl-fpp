@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import { Typography, Button, Box, CircularProgress, LinearProgress, Paper } from '@mui/material'
+import UploadFileIcon from '@mui/icons-material/UploadFile'
 
 interface FileUploaderProps {
   onUploadSuccess?: () => void // refresh docs list in <App>
@@ -92,34 +93,65 @@ export default function FileUploader({ onUploadSuccess }: FileUploaderProps) {
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>
+      {/* <Typography variant="h6" gutterBottom>
         PDF hochladen
-      </Typography>
+      </Typography> */}
 
       <Button
         variant="contained"
         component="label"
+        fullWidth
         disabled={uploading}
-        startIcon={uploading && <CircularProgress size={20} />}
+        startIcon={<UploadFileIcon />}
+        // endIcon={uploading ? <CircularProgress size={20} color="inherit" /> : null}
+        sx={{
+          justifyContent: 'left', // keep text centered with icons at ends
+          textTransform: 'none', // optional: keep casing
+          px: 2, // add horizontal padding if needed
+        }}
       >
-        {uploading ? 'Wird hochgeladen…' : 'PDF auswählen & hochladen'}
+        {uploading ? 'Wird hochgeladen…' : 'PDF auswählen'}
         <input hidden type="file" accept=".pdf" onChange={handleFileChange} />
       </Button>
 
-      {status && (
-        <Paper variant="outlined" sx={{ mt: 2, p: 2 }}>
-          <Typography variant="body2" gutterBottom>
-            {status.state === 'done'
-              ? '✅ Fertig'
-              : status.state === 'error'
-                ? '❌ Fehler'
-                : `⏳ ${status.state}…`}
-          </Typography>
+      <Box sx={{ minHeight: 88 /* keeps layout from jumping */ }}>
+        {status ? (
+          /* ────────── REAL PROGRESS PANEL ────────── */
+          <Paper variant="outlined" sx={{ mt: 2, p: 2 }}>
+            <Typography variant="body2" gutterBottom>
+              {status.state === 'done'
+                ? '✅ Fertig'
+                : status.state === 'error'
+                  ? '❌ Fehler'
+                  : `⏳ ${status.state}…`}
+            </Typography>
 
-          {isWorking && <LinearProgress variant={barVariant} value={barValue} />}
-          {status?.phase && <Typography variant="caption">{status.phase}</Typography>}
-        </Paper>
-      )}
+            {isWorking && <LinearProgress variant={barVariant} value={barValue} />}
+
+            {status.phase && (
+              <Typography variant="caption" color="text.secondary">
+                {status.phase}
+              </Typography>
+            )}
+          </Paper>
+        ) : (
+          /* ────────── PLACEHOLDER PANEL ────────── */
+          <Box
+            variant="outlined"
+            sx={{
+              mt: 2,
+              p: 2,
+              display: 'flex',
+              alignItems: 'top',
+              justifyContent: 'left',
+              color: 'text.secondary',
+              minHeight: 84,
+            }}
+          >
+            {/* <Typography variant="body2">Lade eine PDF hoch</Typography> */}
+          </Box>
+        )}
+      </Box>
 
       {/* {message && (
         <Alert severity={message.startsWith('⚠️') ? 'error' : 'info'} sx={{ mt: 2 }}>
