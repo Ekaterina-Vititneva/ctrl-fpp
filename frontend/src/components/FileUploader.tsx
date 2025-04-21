@@ -17,6 +17,7 @@ interface FileUploaderProps {
 interface JobStatus {
   state: string // queued | parsing | chunking | embedding | storing | done | error
   progress: number // 0.0 – 1.0
+  phase?: string
   error?: string
 }
 
@@ -25,12 +26,19 @@ const POLL_MS = 1_000 // how often to poll /status/<job_id>
 export default function FileUploader({ onUploadSuccess }: FileUploaderProps) {
   const [message, setMessage] = useState<string>('')
   const [uploading, setUploading] = useState<boolean>(false)
-  const [jobId, setJobId] = useState<string | null>(null)
+  const [, setJobId] = useState<string | null>(null)
   const [status, setStatus] = useState<JobStatus | null>(null)
 
-  const timerRef = useRef<NodeJS.Timeout>()
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const backend = import.meta.env.VITE_BACKEND_URL
+
+  // ─── progress‑bar helpers ───────────────────────────────────────────
+  const isWorking = status && !['done', 'error'].includes(status.state)
+  const isDeterm = status && ['parsing', 'chunking', 'embedding'].includes(status.state)
+  const barVariant = isDeterm ? 'determinate' : 'indeterminate'
+  const barValue = status ? Math.round((status.progress ?? 0) * 100) : 0
+  // ────────────────────────────────────────────────────────────────────
 
   const startPolling = (id: string) => {
     timerRef.current = setInterval(async () => {
@@ -115,15 +123,17 @@ export default function FileUploader({ onUploadSuccess }: FileUploaderProps) {
                 ? '❌ Fehler'
                 : `⏳ ${status.state}…`}
           </Typography>
-          <LinearProgress variant="determinate" value={Math.round((status.progress ?? 0) * 100)} />
+
+          {isWorking && <LinearProgress variant={barVariant} value={barValue} />}
+          {status?.phase && <Typography variant="caption">{status.phase}</Typography>}
         </Paper>
       )}
 
-      {message && (
+      {/* {message && (
         <Alert severity={message.startsWith('⚠️') ? 'error' : 'info'} sx={{ mt: 2 }}>
           {message}
         </Alert>
-      )}
+      )} */}
     </Box>
   )
 }
