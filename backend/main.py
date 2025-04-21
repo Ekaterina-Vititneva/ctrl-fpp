@@ -1,9 +1,8 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request, status, BackgroundTasks
+from fastapi import FastAPI, UploadFile, HTTPException, Request, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import os, shutil, pathlib
 from pydantic import BaseModel
-from typing import List
 from llm_loader import get_llm
 import traceback
 from dotenv import load_dotenv
@@ -22,7 +21,6 @@ origins = os.getenv("FRONTEND_ORIGINS", "").split(",")
 print("🔓 CORS allowed origins:", origins)
 
 app = FastAPI()
-#jobs = JobRegistry()
 
 app.add_middleware(
     CORSMiddleware,
