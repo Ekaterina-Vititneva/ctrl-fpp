@@ -15,10 +15,6 @@ DB_HOST = os.getenv("POSTGRES_HOST")
 DB_PORT = os.getenv("POSTGRES_PORT")
 
 if not DB_URL:
-    
-    missing = [k for k in ['DB_NAME', 'DB_USER', 'DB_PASS'] if not locals().get(k)]
-    if missing:
-        raise ValueError(f"Missing DB env variables: {missing}")
 
     DB_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
@@ -40,8 +36,12 @@ CREATE TABLE IF NOT EXISTS documents (
 conn.commit()
 
 def reset():
-    cur.execute("DELETE FROM documents")
-    conn.commit()
+    with psycopg2.connect(DB_URL) as conn:
+        register_vector(conn)
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM documents")
+            conn.commit()
+
 
 def add_embeddings(embeddings, chunk_dicts, filename):
     print("📥 Inserting", len(embeddings), "embeddings into DB")
