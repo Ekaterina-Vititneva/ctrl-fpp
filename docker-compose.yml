@@ -1,27 +1,47 @@
+version: "3.9"
+
 services:
+  db:
+    image: ankane/pgvector:pg16
+    container_name: ctrl-fpp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vectordb
+      POSTGRES_USER: vectouser
+      POSTGRES_PASSWORD: supersecret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: ctrl-fpp-backend
+    depends_on: [db]
+    environment:
+      DATABASE_URL: postgres://vectouser:supersecret@db:5432/vectordb
+    env_file: [.env]
     ports:
       - "8001:8001"
     volumes:
       - ./backend:/app
       - ./backend/vectorstore:/app/vectorstore
-    env_file:
-      - .env
+      - ./backend/data:/app/data/docs
 
   frontend:
+    profiles: ["ui"] # ← only runs with `--profile ui`
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: ctrl-fpp-frontend
+    env_file: [.env]
+    depends_on: [backend]
     ports:
       - "5173:80"
     volumes:
-      - ./frontend:/app
-    env_file:
-      - .env
-    depends_on:
-      - backend
+      - ./frontend:/app # remove in prod, keep in dev
+
+volumes:
+  pgdata:
