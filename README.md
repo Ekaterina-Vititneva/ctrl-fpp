@@ -90,3 +90,7 @@ ctrl-fpp/
 │
 ├── README.md
 ```
+
+```
+docker compose up -d --build
+```

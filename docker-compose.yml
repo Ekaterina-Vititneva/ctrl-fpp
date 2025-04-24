@@ -1,18 +1,18 @@
-version: "3.9"
-
 services:
   db:
-    image: ankane/pgvector:pg16
+    image: ankane/pgvector
     container_name: ctrl-fpp-db
-    restart: unless-stopped
+    ports:
+      - "5433:5432"
     environment:
-      POSTGRES_DB: vectordb
-      POSTGRES_USER: vectouser
-      POSTGRES_PASSWORD: supersecret
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    env_file:
+      - .env
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   backend:
     build:
@@ -21,7 +21,11 @@ services:
     container_name: ctrl-fpp-backend
     depends_on: [db]
     environment:
-      DATABASE_URL: postgres://vectouser:supersecret@db:5432/vectordb
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
     env_file: [.env]
     ports:
       - "8001:8001"
