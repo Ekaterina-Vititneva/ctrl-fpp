@@ -1,5 +1,5 @@
 import { Typography, List, ListItem, ListItemIcon, ListItemText, Box } from '@mui/material'
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
+import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined'
 
 interface UploadedDocumentsListProps {
   documents: string[]
@@ -18,7 +18,7 @@ export default function UploadedDocumentsList({ documents }: UploadedDocumentsLi
           {documents.map((doc, index) => (
             <ListItem key={index}>
               <ListItemIcon>
-                <PictureAsPdfIcon sx={{ color: theme => theme.palette.secondary.main }} />
+                <PictureAsPdfOutlinedIcon sx={{ color: theme => theme.palette.secondary.main }} />
               </ListItemIcon>
               <ListItemText
                 primary={doc}

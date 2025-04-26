@@ -138,7 +138,8 @@ async def ask_docs(req: AskRequest, request: Request):
 
 
         for i, r in enumerate(results):
-            print(f"🔗 {i+1}. {r['source']} (score: {r['distance']:.4f})")
+            score = r.get('distance') or r.get('score')  # works for both pure or hybrid
+            print(f"🔗 {i+1}. {r['source']} (score: {score:.4f})")
             print("   ", r["chunk"][:80], "...")
 
         return {

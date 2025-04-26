@@ -3,6 +3,7 @@
 > An AI-enhanced "Ctrl+F" for complex documents.
 
 **Ctrl+F++** is a lightweight full-stack GenAI app that lets users upload documents (like PDFs), embed them, and ask complex questions — powered by a local or cloud-based LLM.
+
 ![Project](./assets/image.png)
 
 Built with:

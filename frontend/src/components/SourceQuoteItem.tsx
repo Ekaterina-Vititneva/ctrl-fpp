@@ -8,7 +8,8 @@ const MAX_LENGTH = 300
 interface SourceQuoteItemProps {
   chunk: string
   source: string
-  distance: number
+  distance?: number
+  score?: number
   page?: number
   questionWords?: string[]
 }
@@ -22,6 +23,7 @@ export default function SourceQuoteItem({
   chunk,
   source,
   distance,
+  score,
   page,
   questionWords = [],
 }: SourceQuoteItemProps) {
@@ -29,10 +31,9 @@ export default function SourceQuoteItem({
   const [expanded, setExpanded] = useState(false)
   const handleToggle = () => setExpanded(!expanded)
 
-  console.log('📦 chunk:', chunk)
-
   const isTruncated = chunk.length > MAX_LENGTH
   const displayText = expanded ? chunk : truncateText(chunk, MAX_LENGTH)
+  const displaySimilarity = distance ?? score ?? 0
 
   return (
     <Paper
@@ -60,7 +61,7 @@ export default function SourceQuoteItem({
       <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
         📄 {source}
         {page != null && ` (Seite ${page})`}
-        {' • '}🔍 {distance.toFixed(4)}
+        {' • '}🔍 Relevanz: {displaySimilarity.toFixed(4)}
       </Typography>
 
       {isTruncated && (
