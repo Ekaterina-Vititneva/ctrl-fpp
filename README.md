@@ -3,6 +3,7 @@
 > An AI-enhanced "Ctrl+F" for complex documents.
 
 **Ctrl+F++** is a lightweight full-stack GenAI app that lets users upload documents (like PDFs), embed them, and ask complex questions — powered by a local or cloud-based LLM.
+![Project](./assets/image.png)
 
 Built with:
 
@@ -93,4 +94,87 @@ ctrl-fpp/
 
 ```
 docker compose up -d --build
+```
+
+## Project Architecture
+
+```mermaid
+flowchart TD
+    subgraph Frontend
+        FE["React + Vite App"]
+        FE -->|API Requests| Backend
+    end
+
+    subgraph Backend
+        BE["FastAPI App (Ctrl+F++)"]
+        BE -->|SQL queries, embedding storage| DB[(PostgreSQL + pgvector)]
+        BE -->|Prompt / Query| LLM[(LLM Provider e.g. OpenAI or Local Model)]
+    end
+
+    subgraph Database
+        DB[(PostgreSQL with pgvector extension)]
+    end
+
+    subgraph Admin
+        PGAdmin["pgAdmin4"]
+        PGAdmin -->|Manage database| DB
+    end
+
+    FE -->|Uploads PDFs| BE
+    BE -->|Embeddings + Search| DB
+    FE -->|Receives Answers + Quotes| BE
+```
+
+## Running with Docker
+
+This project provides a ready-to-use `docker-compose.yml` for easy deployment.
+
+### 1. Requirements
+
+- Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+---
+
+### 2. Environment Variables
+
+Create a `.env` file in the project root (if not already present):
+
+```bash
+OPENAI_API_KEY=""
+LLM_PROVIDER=""
+POSTGRES_DB=""
+POSTGRES_USER=""
+POSTGRES_PASSWORD=""
+POSTGRES_HOST=""
+POSTGRES_PORT=""
+
+PGADMIN_DEFAULT_EMAIL=""
+PGADMIN_DEFAULT_PASSWORD=""
+
+FRONTEND_ORIGINS=""
+```
+
+3. Build and Start
+   To build and run the containers:
+
+```bash
+docker compose up --build
+```
+
+`db`: PostgreSQL with pgvector extension
+
+`backend`: FastAPI server
+
+`frontend`: React+Vite frontend (optional, runs with --profile ui)
+
+Frontend is optional, you can start only DB + Backend like:
+
+```bash
+docker compose up backend db
+```
+
+Or include UI:
+
+```bash
+docker compose --profile ui up
 ```
