@@ -92,20 +92,29 @@ async def ask_docs(req: AskRequest, request: Request):
         llm = get_llm()
         # structured_llm = llm.with_structured_output()
 
-        # 1) Vector search
+         # 1) Vector search part
         q_embedding = get_embedding([req.question])[0]
-        results = vectorstore.search(q_embedding, top_k=3)
 
-        # 2) Build context
+        # 2) Hybrid search in pgvectorstore
+        results = vectorstore.hybrid_search(q_embedding, req.question, top_k=3)
+
+        if not results:
+            # fallback to pure vector search
+            print("⚡ No keyword match, falling back to pure vector search")
+            results = vectorstore.search(q_embedding, top_k=3)
+
+        # 3) Build context
         context = "\n\n".join([r["chunk"] for r in results])
 
         prompt = f"""
         You are a helpful assistant answering questions based on provided document excerpts (context).
         Use ONLY the context below to answer the question. Do not make up information.
-        If the context is not sufficient, say you don't have enough information.
+        If the context is insufficient, politely say you don't have enough information.
         Use clear and professional language.
-        Format your answer in Markdown: use bullet points, headers, quotes if appropriate. 
-        Always highlight important terms in **bold** when helpful.
+        Format your answer very carefully in **Markdown**:
+        - Use bullet points, headers, quotes if appropriate.
+        - After every heading (e.g., #, ##), insert a blank line.
+        - Highlight important terms in **bold** when helpful.
 
         Context:
         {context}
@@ -116,7 +125,7 @@ async def ask_docs(req: AskRequest, request: Request):
         """
 
 
-        # 3) Get LLM answer
+        # 4) Get LLM answer
         answer_raw = llm.invoke(prompt)
         answer_text = answer_raw.content if hasattr(answer_raw, "content") else str(answer_raw)
 

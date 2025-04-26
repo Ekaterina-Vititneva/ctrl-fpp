@@ -85,3 +85,22 @@ def search(query_embedding, top_k=3):
         }
         for r in rows
     ]
+
+def hybrid_search(query_embedding, query_text, top_k=3):
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT chunk, source, page,
+                (0.7 * (1 - (embedding <=> %s::vector)) + 0.3 * ts_rank_cd(to_tsvector('german', chunk), plainto_tsquery('german', %s))) AS hybrid_score
+            FROM documents
+            WHERE to_tsvector('german', chunk) @@ plainto_tsquery('german', %s)
+            ORDER BY hybrid_score DESC
+            LIMIT %s
+            """,
+            (query_embedding, query_text, query_text, top_k)
+        )
+        rows = cur.fetchall()
+        return [
+            {"chunk": r[0], "source": r[1], "page": r[2], "score": r[3]}
+            for r in rows
+        ]
