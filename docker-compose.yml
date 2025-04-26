@@ -1,7 +1,7 @@
 services:
   db:
     image: ankane/pgvector
-    container_name: ctrl-fpp-db
+    container_name: ctrl-fpp-db-1
     ports:
       - "5433:5432"
     environment:
@@ -28,14 +28,14 @@ services:
       POSTGRES_PORT: 5432
     env_file: [.env]
     ports:
-      - "8001:8001"
+      - "8001:8000"
     volumes:
       - ./backend:/app
       - ./backend/vectorstore:/app/vectorstore
       - ./backend/data:/app/data/docs
 
   frontend:
-    profiles: ["ui"] # ← only runs with `--profile ui`
+    profiles: ["ui"]
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -45,7 +45,21 @@ services:
     ports:
       - "5173:80"
     volumes:
-      - ./frontend:/app # remove in prod, keep in dev
+      - ./frontend:/app
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: ctrl-fpp-pgadmin-1
+    depends_on: [db]
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    env_file: [.env]
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
 
 volumes:
   pgdata:
+  pgadmin_data:

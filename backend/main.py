@@ -9,8 +9,8 @@ import traceback
 from dotenv import load_dotenv
 import psycopg2
 
-# Import your new page-based parser and chunker
-from parser import parse_pdf_pages, chunk_pdf_pages
+# Import page-based parser and chunker
+#from parser import parse_pdf_pages, chunk_pdf_pages
 from embedding_model import get_embedding, get_embedding_with_metadata
 #from rag import vectorstore
 import pgvectorstore as vectorstore
@@ -77,7 +77,6 @@ async def upload_file(
         },
         status_code=202,
     )
-# ───────────────────────────────────────────────────────────────────────────────
 
 
 class AskRequest(BaseModel):
@@ -101,13 +100,21 @@ async def ask_docs(req: AskRequest, request: Request):
         context = "\n\n".join([r["chunk"] for r in results])
 
         prompt = f"""
-        You are a helpful assistant. Use the context to answer the question. Use markdown for the answer to structure it, if needed. 
+        You are a helpful assistant answering questions based on provided document excerpts (context).
+        Use ONLY the context below to answer the question. Do not make up information.
+        If the context is not sufficient, say you don't have enough information.
+        Use clear and professional language.
+        Format your answer in Markdown: use bullet points, headers, quotes if appropriate. 
+        Always highlight important terms in **bold** when helpful.
+
         Context:
         {context}
 
         Question: {req.question}
-        Answer:
+
+        Answer (in Markdown):
         """
+
 
         # 3) Get LLM answer
         answer_raw = llm.invoke(prompt)
@@ -132,7 +139,7 @@ async def ask_docs(req: AskRequest, request: Request):
         }
 
     except Exception as e:
-        print("⚠️ Error in /askLocal:")
+        print("⚠️ Error in /ask:")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
