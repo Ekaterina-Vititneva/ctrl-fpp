@@ -30,7 +30,7 @@ const ResetButton: React.FC<ResetButtonProps> = ({ onResetSuccess }) => {
       startIcon={<DeleteOutlineIcon />}
       sx={{ mt: 2, justifyContent: 'left' }}
     >
-      Reset Knowledge Base
+      Wissensbasis zurücksetzen
     </Button>
   )
 }
